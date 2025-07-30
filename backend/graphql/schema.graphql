@@ -1,0 +1,15 @@
+type UserProfile {
+  sub: ID!
+  username: String!
+  displayName: String!
+  bio: String!
+  followingCount: Int!
+  followerCount: Int!
+  postCount: Int!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Query {
+    getUser: UserProfile
+}
