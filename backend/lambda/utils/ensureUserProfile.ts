@@ -1,6 +1,7 @@
-import { UserProfile, UserProfileSchema } from '../users/types'
+import { UserProfile, UserProfileSchema, Page, PageSchema } from '../users/types'
 import { ddb } from '../../clients/ddb'
-import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { BatchGetCommand, BatchWriteCommand, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DEFAULT_COLOR, DEFAULT_FONT, DEFAULT_SECTIONS } from './global-types';
 
 export async function ensureUserProfile(identity: Record<string, any>): Promise<UserProfile> {
     if (!identity) {
@@ -14,20 +15,32 @@ export async function ensureUserProfile(identity: Record<string, any>): Promise<
 
     const TABLE_NAME = process.env.TABLE_NAME!;
 
-    const key = {
+    const profileKey = {
         PK: `USER#${sub}`,
         SK: 'PROFILE'
     };
 
-    const getCmd = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: key,
+    const pageKey = {
+        PK: `USER#${sub}`,
+        SK: 'PAGE#home'
+    }
+
+    const batchGetCmd = new BatchGetCommand({
+        RequestItems: {
+            [TABLE_NAME]: {
+                Keys: [profileKey, pageKey]
+            }
+        }
     });
 
-    const getResp = await ddb.send(getCmd);
+    const getResp = await ddb.send(batchGetCmd);
+    const items = getResp.Responses?.[TABLE_NAME] || [];
 
-    if(getResp.Item) {
-        const parsed = UserProfileSchema.safeParse(getResp.Item);
+    const existingProfile = items.find(item => item.SK === 'PROFILE');
+    const existingPage = items.find(item => item.SK === 'PAGE#home');
+
+    if(existingProfile && existingPage) {
+        const parsed = UserProfileSchema.safeParse(existingProfile);
         if (!parsed.success) {
             throw new Error("Invalid user profile data in DB");
         }
@@ -36,26 +49,76 @@ export async function ensureUserProfile(identity: Record<string, any>): Promise<
     }
 
     const now = new Date().toISOString();
-    const newProfile: UserProfile = {
-        PK: key.PK,
-        SK: key.SK,
-        username: identity.username,
-        displayName: identity.username,
-        bio: "",
-        followingCount: 0,
-        followerCount: 0,
-        postCount: 0,
-        createdAt: now,
-        updatedAt: now
+    const toCreate = [];
+
+    if (!existingProfile) {
+        const newProfile: UserProfile = {
+            PK: profileKey.PK,
+            SK: profileKey.SK,
+            username: identity.username,
+            displayName: identity.username,
+            bio: "",
+            followingCount: 0,
+            followerCount: 0,
+            postCount: 0,
+            createdAt: now,
+            updatedAt: now,
+            entityType: "PROFILE"
+        };
+        toCreate.push({
+            PutRequest: { Item: newProfile }
+        });
     }
 
-    const putCmd = new PutCommand({
-        TableName: TABLE_NAME,
-        Item: newProfile,
-    });
+    if (!existingPage) {
+        const newPage: Page = {
+            PK: pageKey.PK,
+            SK: pageKey.SK,
+            createdAt: now,
+            updatedAt: now,
+            sectionCount: DEFAULT_SECTIONS,
+            backgroundType: "color",
+            backgroundColor: DEFAULT_COLOR,
+            font: DEFAULT_FONT,
+            entityType: "PAGE",
+        };
+        toCreate.push({
+            PutRequest: { Item: newPage }
+        });
+    }
 
-    await ddb.send(putCmd);
+    // Create missing items if any
+    if (toCreate.length > 0) {
+        const batchWriteCmd = new BatchWriteCommand({
+            RequestItems: {
+                [TABLE_NAME]: toCreate
+            }
+        });
+        await ddb.send(batchWriteCmd);
+    }
 
-    return newProfile;
+    if (existingProfile) {
+        const parsed = UserProfileSchema.safeParse(existingProfile);
+        if (!parsed.success) {
+            throw new Error("Invalid user profile data in DB");
+        }
+        return parsed.data;
+    } else {
+        // Return the newly created profile
+        const newProfile: UserProfile = {
+            PK: profileKey.PK,
+            SK: profileKey.SK,
+            username: identity.username,
+            displayName: identity.username,
+            bio: "",
+            followingCount: 0,
+            followerCount: 0,
+            postCount: 0,
+            createdAt: now,
+            updatedAt: now,
+            entityType: "PROFILE"
+        };
+        return newProfile;
+    }
 }
 
