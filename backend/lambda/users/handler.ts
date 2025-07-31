@@ -14,17 +14,19 @@ export const handler = async (event: any) => {
     const user = await ensureUserProfile(event.identity);
 
     switch(fieldName) {
+        case 'getCurrentUser':
+            return await getUser(sub);
         case 'getUser':
-            return await getUser(event);
+            return await getUser(event.arguments.sub)
         default:
             throw new Error("Lambda unhandled")
     }
 
 };
 
-const getUser = async(event: any) => {
+const getUser = async(sub: any) => {
     const key = {
-        PK: `USER#${event.identity.sub}`,
+        PK: `USER#${sub}`,
         SK: 'PROFILE',
     }
 

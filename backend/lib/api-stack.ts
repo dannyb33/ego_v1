@@ -43,6 +43,11 @@ export class ApiStack extends Stack {
 
         const userSource = api.addLambdaDataSource('UserLambdaDataSource', userFunction)
 
+        userSource.createResolver('GetCurrentUserResolver', {
+            typeName: 'Query',
+            fieldName: 'getCurrentUser',
+        });
+
         userSource.createResolver('GetUserResolver', {
             typeName: 'Query',
             fieldName: 'getUser',

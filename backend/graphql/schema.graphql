@@ -11,5 +11,6 @@ type UserProfile {
 }
 
 type Query {
-    getUser: UserProfile
+    getCurrentUser: UserProfile
+    getUser(sub: ID!): UserProfile
 }
