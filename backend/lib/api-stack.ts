@@ -52,5 +52,37 @@ export class ApiStack extends Stack {
             typeName: 'Query',
             fieldName: 'getUser',
         });
+
+        userSource.createResolver('SearchUsersResolver', {
+            typeName: 'Query',
+            fieldName: 'searchUsers',
+        });
+
+        userSource.createResolver('GetCurrentPageResolver', {
+            typeName: 'Query',
+            fieldName: 'getCurrentPage'
+        });
+
+        userSource.createResolver('GetPageResolver', {
+            typeName: 'Query',
+            fieldName: 'getPage'
+        });
+
+        userSource.createResolver("AddComponentResolver", {
+            typeName: 'Mutation',
+            fieldName: 'addPageComponent'
+        });
+
+        userSource.createResolver("RemoveComponentResolver", {
+            typeName: 'Mutation',
+            fieldName: 'removePageComponent'
+        });
+
+        userSource.createResolver("MoveComponentResolver", {
+            typeName: 'Mutation',
+            fieldName: 'movePageComponent'
+        });
+
+        
     }
 }

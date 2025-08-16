@@ -1,5 +1,17 @@
+enum ComponentType {
+  BIO
+  LINK
+  IMAGE
+  TEXT
+}
+
+enum BackgroundType {
+  COLOR
+  IMAGE
+}
+
 type UserProfile {
-  sub: ID!
+  uuid: String!
   username: String!
   displayName: String!
   bio: String!
@@ -10,7 +22,66 @@ type UserProfile {
   updatedAt: String!
 }
 
+type PageResponse {
+  page: PageInfo!
+  components: [Component!]!
+  componentCount: Int!
+  totalSections: Int!
+}
+
+type PageInfo {
+  createdAt: String!
+  updatedAt: String!
+  sectionCount: Int!
+  backgroundType: BackgroundType!
+  backgroundColor: String!
+  backgroundImage: String
+  font: String!
+}
+
+interface Component {
+  createdAt: String!
+  updatedAt: String!
+  order: Int!
+  uuid: String!
+  componentType: ComponentType!
+}
+
+type BioComponent implements Component {
+  createdAt: String!
+  updatedAt: String!
+  order: Int!
+  uuid: String!
+  componentType: ComponentType!
+  username: String!
+  displayName: String!
+  bio: String!
+  followingCount: Int!
+  followerCount: Int!
+  postCount: Int!
+}
+
+type TextComponent implements Component {
+  createdAt: String!
+  updatedAt: String!
+  order: Int!
+  uuid: String!
+  componentType: ComponentType!
+  font: String!
+  backgroundColor: String!
+  text: String!
+}
+
 type Query {
     getCurrentUser: UserProfile
     getUser(sub: ID!): UserProfile
+    searchUsers(query: String!): [UserProfile]
+    getCurrentPage: PageResponse
+    getPage(sub: ID!): PageResponse
+}
+
+type Mutation {
+  addPageComponent(type: ComponentType!): PageResponse
+  removePageComponent(componentId: String!): PageResponse
+  movePageComponent(componentId: String!, newOrder: Int!): PageResponse
 }

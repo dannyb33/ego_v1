@@ -1,8 +1,35 @@
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ensureUserProfile } from "../utils/ensureUserProfile";
 import { ddb } from "../../clients/ddb"
+import { QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { Component, Page, BaseComponent, BioComponent, TextComponent, ComponentType, UserProfile } from "./types";
+import { DEFAULT_COLOR, DEFAULT_FONT, DEFAULT_SECTIONS } from "../utils/global-types";
+import crypto from "crypto";
+import { CfnComponentType } from "aws-cdk-lib/aws-iottwinmaker";
+import { cp } from "fs";
 
 const TABLE_NAME = process.env.TABLE_NAME!;
+
+type UserResponse = Omit<UserProfile, 'PK' | 'SK' | 'entityType' | 'GSI1PK' | 'GSI1SK'> & {
+    uuid: string;
+};
+
+type PageResponse = Omit<Page, 'PK' | 'SK' | 'entityType'>;
+
+type BaseComponentResponse = Omit<BaseComponent, 'PK' | 'SK' | 'entityType'> & {
+    __typename: 'BaseComponent';
+    uuid: string;
+};
+type BioComponentResponse = Omit<BioComponent, 'PK' | 'SK' | 'entityType'> & {
+    __typename: 'BioComponent';
+    uuid: string;
+};
+type TextComponentResponse = Omit<TextComponent, 'PK' | 'SK' | 'entityType'> & {
+    __typename: 'TextComponent'
+    uuid: string;
+};
+
+type ComponentResponse = BaseComponentResponse | BioComponentResponse | TextComponentResponse;
 
 export const handler = async (event: any) => {
     const fieldName = event.info.fieldName;
@@ -18,6 +45,18 @@ export const handler = async (event: any) => {
             return await getUser(sub);
         case 'getUser':
             return await getUser(event.arguments.sub)
+        case 'searchUsers':
+            return await searchUsers(event.arguments.query)
+        case 'getCurrentPage':
+            return await getPage(sub)
+        case 'getPage':
+            return await getPage(event.arguments.sub)
+        case 'addPageComponent':
+            return await addComponent(sub, event.arguments.type)
+        case 'removePageComponent':
+            return await removeComponent(sub, event.arguments.componentId)
+        case 'movePageComponent':
+            return await moveComponent(sub, event.arguments.componentId, event.arguments.newOrder)
         default:
             throw new Error("Lambda unhandled")
     }
@@ -25,35 +64,337 @@ export const handler = async (event: any) => {
 };
 
 const getUser = async(sub: any) => {
-    const key = {
-        PK: `USER#${sub}`,
-        SK: 'PROFILE',
+    try {
+        const key = {
+            PK: `USER#${sub}`,
+            SK: 'PROFILE',
+        }
+
+        const getCmd = new GetCommand({
+            TableName: TABLE_NAME,
+            Key: key
+        });
+
+        const response = await ddb.send(getCmd);
+
+        if (!response.Item) {
+            throw new Error("User not found")
+        }
+
+        const item = response.Item;
+
+        const userProfile = {
+            uuid: item.PK.split('#')[1],
+            username: item.username,
+            displayName: item.displayName,
+            bio: item.bio,
+            followingCount: Number(item.followingCount),
+            followerCount: Number(item.followerCount),
+            postCount: Number(item.postCount),
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+        };
+
+        return userProfile;
+    } catch (error) {
+        throw new Error(`Failed to get user: ${error}`);
+    }
+}
+
+const searchUsers = async(query: string) => {
+    try {
+        const queryCmd = new QueryCommand({
+            TableName: TABLE_NAME,
+            IndexName: "GSI1",
+            KeyConditionExpression: "GSI1PK = :userPrefix AND begins_with(GSI1SK, :prefix)",
+            ExpressionAttributeValues: {
+                ":userPrefix": "USER",
+                ":prefix": query
+            }
+        })
+
+        const response = await ddb.send(queryCmd);
+
+        const userList = response.Items || [];
+        const outList: UserResponse[] = [];
+
+        for(const item of userList) {
+            outList.push({
+                uuid: item.PK.split('#')[1],
+                username: item.username,
+                displayName: item.displayName,
+                bio: item.bio,
+                followingCount: Number(item.followingCount),
+                followerCount: Number(item.followerCount),
+                postCount: Number(item.postCount),
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+            });
+        }
+
+        return outList;
+
+    } catch (error) {
+        throw new Error(`Error searching: ${error}`)
+    }
+}
+
+const getPage = async(sub: any) => {
+    try {
+        const profile = await getUser(sub);
+
+        const pageResponse = await queryPage(sub);
+
+        const pageInfoItem = pageResponse.pageInfo;
+        const componentItems = pageResponse.componentList;
+
+        const pageInfo: PageResponse = {
+            createdAt: pageInfoItem.createdAt,
+            updatedAt: pageInfoItem.updatedAt,
+            sectionCount: pageInfoItem.sectionCount,
+            backgroundType: pageInfoItem.backgroundType,
+            backgroundColor: pageInfoItem.backgroundColor,
+            backgroundImage: pageInfoItem.backgroundImage ? String(pageInfoItem.backgroundImage) : undefined,
+            font: pageInfoItem.font
+        }
+
+        const components: ComponentResponse[] = [];
+
+        for (const item of componentItems) {
+            const formatted = formatComponent(item)
+
+            if (formatted.__typename === "BioComponent") {
+                components.push({
+                    ...formatted,
+                    displayName: profile.displayName,
+                    bio: profile.bio,
+                    followingCount: profile.followingCount,
+                    followerCount: profile.followerCount,
+                    postCount: profile.postCount
+                });
+            } else {
+                components.push(formatComponent(item));
+            }
+        }
+
+        return {
+            page: pageInfo,
+            components: components,
+            componentCount: components.length,
+            totalSections: pageInfo.sectionCount
+        }
+
+    } catch (error) {
+        throw new Error(`Failed to get page: ${error}`);
+    }
+}
+
+//TODO: FIGURE OUT HOW USER INFORMATION IS RETURNED, WHETHER JUST IN BIO OR GENERALLY THRU PAGE INFO
+
+const addComponent = async(sub: any, type: ComponentType) => {
+    try {
+        const pageResponse = await queryPage(sub);
+
+        const pageInfoItem = pageResponse.pageInfo;
+        const componentItems = pageResponse.componentList;
+        const maxOrder = pageResponse.maxOrder;
+        const newOrder = maxOrder + 10;
+
+        if (componentItems.length >= pageInfoItem.sectionCount) {
+            throw new Error('Maximum components reached')
+        }
+
+        const userData = await ddb.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${sub}`,
+                SK: `PROFILE`
+            }
+        }))
+
+        const user = userData.Item;
+
+        if (!user) {
+            throw new Error("User not found")
+        }
+
+        const now = new Date().toISOString();
+
+        let newComponent: Component;
+
+        switch (String(type)) {
+            case "BIO":
+                newComponent = {
+                    PK: user.PK,
+                    SK: `PAGE#COMPONENT#${crypto.randomUUID()}`,
+                    createdAt: now,
+                    updatedAt: now,
+                    order: newOrder,
+                    componentType: "BIO",
+                    username: user.username,
+                    displayName: user.displayName,
+                    bio: user.bio,
+                    followingCount: user.followingCount,
+                    followerCount: user.followerCount,
+                    postCount: user.postCount,
+                    entityType: "COMPONENT"
+                };
+                break
+            case "TEXT":
+                newComponent = {
+                    PK: user.PK,
+                    SK: `PAGE#COMPONENT#${crypto.randomUUID()}`,
+                    createdAt: now,
+                    updatedAt: now,
+                    order: newOrder,
+                    componentType: "TEXT",
+                    font: DEFAULT_FONT,
+                    backgroundColor: DEFAULT_COLOR,
+                    text: "",
+                    entityType: "COMPONENT" 
+                };
+                break
+            default:
+                newComponent = {
+                    PK: user.PK,
+                    SK: `PAGE#COMPONENT#${crypto.randomUUID()}`,
+                    createdAt: now,
+                    updatedAt: now,
+                    order: newOrder,
+                    componentType: "TEXT",
+                    font: DEFAULT_FONT,
+                    backgroundColor: DEFAULT_COLOR,
+                    text: "",
+                    entityType: "COMPONENT" 
+                };
+                break
+        }
+
+        const putCmd = new PutCommand({
+            TableName: TABLE_NAME,
+            Item: newComponent
+        })
+
+        await ddb.send(putCmd);
+
+        return getPage(sub);
+
+    } catch (error) {
+        throw new Error(`Error adding component: ${error}`)
+    }
+}
+
+const removeComponent = async(sub: any, componentId: string) => {
+    try {
+        const deleteCmd = new DeleteCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${sub}`,
+                SK: `PAGE#COMPONENT#${componentId}`
+            }
+        });
+
+        const delResponse = await ddb.send(deleteCmd);
+
+        return getPage(sub);
+
+    } catch (error) {
+        throw new Error(`Error when deleting component: ${error}`)
+    }
+}
+
+const moveComponent = async(sub: any, componentId: string, newOrder: number) => {
+    try {
+        const updateCmd = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${sub}`,
+                SK: `PAGE#COMPONENT#${componentId}`
+            },
+            UpdateExpression: "SET #order = :newOrder, updatedAt = :now",
+            ExpressionAttributeNames: {
+                "#order": "order"
+            },
+            ExpressionAttributeValues: {
+                ":newOrder": newOrder,
+                ":now": new Date().toISOString()
+            }
+        });
+
+        await ddb.send(updateCmd);
+
+        return getPage(sub);
+    } catch (error) {
+        throw new Error(`Error moving component: ${error}`);
+    }
+}
+
+function formatComponent(component: Record<string, any>) {
+        const baseComponent = {
+                createdAt: component.createdAt,
+                updatedAt: component.updatedAt,
+                order: component.order,
+                componentType: component.componentType,
+                uuid: component.SK.split("PAGE#COMPONENT#")[1],
+        }
+
+        let out: ComponentResponse;
+        
+        switch (component.componentType) {
+            case "BIO":
+                out = {
+                    ...baseComponent,
+                    __typename: "BioComponent",
+                    username: component.username,
+                    displayName: component.displayName,
+                    bio: component.bio,
+                    followingCount: component.followingCount,
+                    followerCount: component.followerCount,
+                    postCount: component.postCount
+                }
+                return out
+            case "TEXT":
+                out = {
+                    ...baseComponent,
+                    __typename: "TextComponent",
+                    font: component.font,
+                    backgroundColor: component.backgroundColor,
+                    text: component.text
+                }
+                return out
+            default:
+                out = {
+                    ...baseComponent,
+                    __typename: "BaseComponent"
+                }
+                return out
+        }
+}
+
+async function queryPage(sub: any) {
+    const queryCmd = new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :pagePrefix)',
+            ExpressionAttributeValues: {
+                ':pk': `USER#${sub}`,
+                ':pagePrefix': 'PAGE#',
+            },
+        });
+
+    const response = await ddb.send(queryCmd);
+    const items = response.Items || [];
+
+    const pageInfoItem = items.find(item => String(item.SK) === `PAGE#home`);
+    if (!pageInfoItem) {
+        throw new Error('Page not found');
     }
 
-    const getCmd = new GetCommand({
-        TableName: TABLE_NAME,
-        Key: key
-    });
+    const componentItems = items
+        .filter(item => String(item.SK).startsWith('PAGE#COMPONENT#'))
+        .sort((a, b) => a.order - b.order);
 
-    const response = await ddb.send(getCmd);
+    const maxOrder = items.reduce((max, item) => Math.max(max, item.order || 0), 0);
+    const newOrder = maxOrder + 10;
 
-    if (!response.Item) {
-        throw new Error("User not found")
-    }
-
-    const item = response.Item;
-
-    const userProfile = {
-        sub: item.PK.replace(/^USER#/, ""), // extract sub from PK
-        username: item.username,
-        displayName: item.displayName,
-        bio: item.bio,
-        followingCount: Number(item.followingCount),
-        followerCount: Number(item.followerCount),
-        postCount: Number(item.postCount),
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-    };
-
-    return userProfile;
+    return {'pageInfo': pageInfoItem, 'componentList': componentItems, 'maxOrder': maxOrder};
 }
