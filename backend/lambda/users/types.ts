@@ -1,4 +1,4 @@
-import { TypeOf, z } from 'zod';
+import { z } from 'zod';
 import { BaseDBSchema } from '../utils/global-types';
 
 export const UserProfileSchema = BaseDBSchema.extend({
@@ -25,13 +25,13 @@ export const PageSchema = BaseDBSchema.extend({
 export const BaseComponentSchema = BaseDBSchema.extend({
     componentType: z.string(),
     order: z.number(),
-})
+});
 
 export const TextComponentSchema = BaseComponentSchema.extend({
     font: z.string(),
     backgroundColor: z.string(),
     text: z.string().default("Default Text")
-})
+});
 
 export const BioComponentSchema = BaseComponentSchema.extend({
     username: z.string(),
@@ -40,6 +40,18 @@ export const BioComponentSchema = BaseComponentSchema.extend({
     followingCount: z.number(),
     followerCount: z.number(),
     postCount: z.number()
+});
+
+export const FollowingSchema = BaseDBSchema.extend({
+    followingUsername: z.string(),
+    followingDisplayName: z.string(),
+    followingSub: z.string()
+});
+
+export const FollowerSchema = BaseDBSchema.extend({
+    followerUsername: z.string(),
+    followerDisplayName: z.string(),
+    followerSub: z.string()
 })
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
@@ -52,3 +64,6 @@ export type TextComponent = z.infer<typeof TextComponentSchema>;
 export type Component = BaseComponent | BioComponent | TextComponent;
 
 export type ComponentType = ["BIO", "TEXT"]
+
+export type FollowingObject = z.infer<typeof FollowingSchema>;
+export type FollowerObject = z.infer<typeof FollowerSchema>;

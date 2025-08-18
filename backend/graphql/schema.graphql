@@ -5,6 +5,11 @@ enum ComponentType {
   TEXT
 }
 
+enum PostType {
+  TEXT
+  IMAGE
+}
+
 enum BackgroundType {
   COLOR
   IMAGE
@@ -72,16 +77,49 @@ type TextComponent implements Component {
   text: String!
 }
 
+type FollowerResponse {
+  createdAt: String!
+  updatedAt: String!
+  followerUsername: String!
+}
+
+interface Post {
+  createdAt: String!
+  updatedAt: String!
+  username: String!
+  displayName: String!
+  uuid: String!
+  postType: PostType!
+}
+
+type TextPost implements Post {
+  createdAt: String!
+  updatedAt: String!
+  username: String!
+  displayName: String!
+  uuid: String!
+  postType: PostType!
+  text: String!
+}
+
 type Query {
     getCurrentUser: UserProfile
     getUser(sub: ID!): UserProfile
     searchUsers(query: String!): [UserProfile]
     getCurrentPage: PageResponse
     getPage(sub: ID!): PageResponse
+
+    getCurrentPosts: [Post]
+    getUserPosts(sub: ID!): [Post]
 }
 
 type Mutation {
   addPageComponent(type: ComponentType!): PageResponse
   removePageComponent(componentId: String!): PageResponse
   movePageComponent(componentId: String!, newOrder: Int!): PageResponse
+
+  followUser(userId: ID!): UserProfile
+  unfollowUser(userId: ID!): UserProfile
+
+  createTextPost(text: String!): Post
 }

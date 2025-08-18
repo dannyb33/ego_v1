@@ -26,7 +26,17 @@ export class ApiStack extends Stack {
             },
         });
 
-        props.table.grantReadWriteData(userFunction)
+        const postFunction = new NodejsFunction(this, 'PostFunction', {
+            runtime: Runtime.NODEJS_18_X,
+            entry: 'lambda/posts/handler.ts',
+            handler: 'handler',
+            environment: {
+                TABLE_NAME: props.table.tableName,
+            },
+        });
+
+        props.table.grantReadWriteData(userFunction);
+        props.table.grantReadWriteData(postFunction);
 
         const api = new GraphqlApi(this, 'EgoApi', {
             name: 'ego-api',
@@ -41,7 +51,8 @@ export class ApiStack extends Stack {
             }
         })
 
-        const userSource = api.addLambdaDataSource('UserLambdaDataSource', userFunction)
+        const userSource = api.addLambdaDataSource('UserLambdaDataSource', userFunction);
+        const postSource = api.addLambdaDataSource('PostLambdaDataSource', postFunction);
 
         userSource.createResolver('GetCurrentUserResolver', {
             typeName: 'Query',
@@ -83,6 +94,29 @@ export class ApiStack extends Stack {
             fieldName: 'movePageComponent'
         });
 
-        
+        userSource.createResolver("FollowUserResolver", {
+            typeName: 'Mutation',
+            fieldName: 'followUser'
+        });
+
+        userSource.createResolver("UnfollowUserResolver", {
+            typeName: 'Mutation',
+            fieldName: 'unfollowUser'
+        });
+
+        postSource.createResolver('GetCurrentPostsResolver', {
+            typeName: 'Query',
+            fieldName: 'getCurrentPosts'
+        });
+
+        postSource.createResolver('GetUserPostsResolver', {
+            typeName: 'Query',
+            fieldName: 'getUserPosts'
+        });
+
+        postSource.createResolver('CreateTextPostResolver', {
+            typeName: 'Mutation',
+            fieldName: 'createTextPost'
+        })
     }
 }
