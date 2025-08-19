@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&family=Lusitana:wght@400;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --font-sans: 'Arial', Helvetica, sans-serif;
+  --font-mono: 'Courier New', monospace;
+  --font-lusitana: 'Google Sans Code';
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* optional dark mode variables */
+  }
+}
+
+
+
+@theme {
+  /* Palette */
+  --color-linen: #ffede1;
+  --color-pumpkin: #FF6C0A;
+  --color-ivory: #f9fbf2;
+  --color-light-cyan: #d7f9ff;
+  --color-jordy-blue: #afcbff;
+  --color-oxford-blue: #0e1c36;
+  --color-marian-blue: #214382;
+
+  --color-bright-pink-crayola: #ff6978ff;
+  --color-darker-pink: #F04657;
+  --color-baby-powder: #fffcf9ff;
+  --color-celeste: #b1ede8ff;
+  --color-eggplant: #6d435aff;
+  --color-raisin-black: #352d39ff;
+
+
+  /* Fonts */
+  --font-display: var(--font-lusitana);
+}
+
+body {
+  font-family: var(--font-lusitana);
+  margin: 0;
+  padding: 0;
+}
