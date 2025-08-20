@@ -54,7 +54,7 @@ export class FrontendStack extends Stack {
                             }
                         },
                         artifacts: {
-                            baseDirectory: 'build',
+                            baseDirectory: '.next',
                             files: ['**/*']
                         },
                         cache: {
