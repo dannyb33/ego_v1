@@ -8,3 +8,10 @@ node_modules
 cdk.out
 
 .env*
+
+
+# amplify
+node_modules
+.amplify
+amplify_outputs*
+amplifyconfiguration*
