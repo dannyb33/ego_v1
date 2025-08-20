@@ -2,6 +2,8 @@
 
 *It's Not About You!*
 
+ego-journal.com
+
 ---
 
 - Daily social media app focused on personal interests.  
