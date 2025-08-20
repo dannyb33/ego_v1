@@ -124,7 +124,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component,
       return (
         <div className="bg-gray-100 rounded-lg p-4 mb-4">
           <p className="text-gray-500">
-            Unknown component type: {(component as any).componentType ?? 'undefined'}
+            Unknown component type: {(component as AnyComponent).componentType ?? 'undefined'}
           </p>
         </div>
       );

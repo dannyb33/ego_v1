@@ -50,12 +50,12 @@ function MainPageContent() {
     setLoading(true);
     setError(null);
     try {
-      const data = await executeGraphQLQuery<{ getCurrentPage: PageResponse }>(GET_CURRENT_PAGE);
+      const data = await executeGraphQLQuery<{ getCurrentPage: PageResponse }>({query: GET_CURRENT_PAGE});
       setPageData(data.getCurrentPage);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Failed to load page');
-    } finally {
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Failed to fetch page';
+      console.error(err)
+    }  finally {
       setLoading(false);
     }
   };
@@ -64,11 +64,11 @@ function MainPageContent() {
     setLoading(true);
     setError(null);
     try {
-      const data = await executeGraphQLQuery<{ getCurrentPosts: Post[] }>(GET_CURRENT_POSTS);
+      const data = await executeGraphQLQuery<{ getCurrentPosts: Post[] }>({query: GET_CURRENT_POSTS});
       setPosts(data.getCurrentPosts);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Failed to load posts');
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Failed to load posts';
+      console.error(err)
     } finally {
       setLoading(false);
     }
@@ -85,13 +85,14 @@ function MainPageContent() {
     setSearchError(null);
 
     try {
-      const data = await executeGraphQLQuery<{ searchUsers: UserProfile[] }>(SEARCH_USERS, { query });
+      const data = await executeGraphQLQuery<{ searchUsers: UserProfile[] }>({query: SEARCH_USERS, variables:{query: query}});
 
       setSearchResults(data.searchUsers.filter(currUser => currUser.uuid != user?.userId));
 
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Failed to fetch users';
+      setError(errorMessage);
       console.error(err);
-      setSearchError(err.message || 'Failed to fetch users');
     } finally {
       setSearchLoading(false);
     }
@@ -109,22 +110,23 @@ function MainPageContent() {
     setUserDataError(null);
     try {
       console.log(user.uuid);
-      const pageData = await executeGraphQLQuery<{ getPage: PageResponse }>(GET_PAGE, { sub: user.uuid });
+      const pageData = await executeGraphQLQuery<{ getPage: PageResponse }>({query: GET_PAGE, variables: { sub: user.uuid }});
       console.log(pageData);
       setUserPage(pageData.getPage);
       setCustomizerOpen(false);
 
       console.log(user.uuid);
 
-      const postsData = await executeGraphQLQuery<{ getUserPosts: Post[] }>(GET_USER_POSTS, { sub: user.uuid });
+      const postsData = await executeGraphQLQuery<{ getUserPosts: Post[] }>({query: GET_USER_POSTS, variables: { sub: user.uuid }});
       setUserPosts(postsData.getUserPosts);
 
       setSelectedUser(user);
       setActiveTab('page'); // default to page view
 
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Failed to load user data';
+      setError(errorMessage);
       console.error(err);
-      setUserDataError(err.message || 'Failed to load user data');
     } finally {
       setLoadingUserData(false);
     }
@@ -136,12 +138,14 @@ function MainPageContent() {
     setLoadingUserData(true);
     setUserDataError(null);
     try {
-      const pageData = await executeGraphQLQuery<{ removePageComponent: PageResponse }>(DELETE_COMPONENT, { componentId: id })
+      const pageData = await executeGraphQLQuery<{ removePageComponent: PageResponse }>({query: DELETE_COMPONENT, variables:{ componentId: id }});
       console.log(pageData);
       console.log(pageData.removePageComponent);
       setPageData(pageData.removePageComponent);
-    } catch (err: any) {
-      setUserDataError(err.message || "Failed to delete component");
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Failed to delete component';
+      setError(errorMessage);
+      console.error(err);
     } finally {
       setLoadingUserData(false);
     }
@@ -217,13 +221,15 @@ function MainPageContent() {
     setLoadingUserData(true);
     setUserDataError(null);
     try {
-      const pageData = await executeGraphQLQuery<{ addPageComponent: PageResponse }>(ADD_COMPONENT, { type: type })
+      const pageData = await executeGraphQLQuery<{ addPageComponent: PageResponse }>({query: ADD_COMPONENT, variables: { type: type }});
       console.log(pageData);
       console.log(pageData.addPageComponent);
       setPageData(pageData.addPageComponent);
       setComponentMenuOpen(false);
-    } catch (err: any) {
-      setUserDataError(err.message || "Failed to add component");
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Failed to add component ';
+      setError(errorMessage);
+      console.error(err);
     } finally {
       setLoadingUserData(false);
     }

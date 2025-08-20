@@ -44,7 +44,6 @@ export class FrontendStack extends Stack {
                         phases: {
                             preBuild: {
                                 commands: [
-                                    'cd frontend',
                                     'npm ci'
                                 ]
                             },
@@ -55,7 +54,7 @@ export class FrontendStack extends Stack {
                             }
                         },
                         artifacts: {
-                            baseDirectory: 'build',
+                            baseDirectory: '.next',
                             files: ['**/*']
                         },
                         cache: {

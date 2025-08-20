@@ -28,7 +28,7 @@ export const PostRenderer: React.FC<PostRendererProps> = ({ post }) => {
       return (
         <div className="bg-gray-100 rounded-lg p-4 mb-4">
           <p className="text-gray-500">
-            Unknown post type: {(post as any).postType ?? 'undefined'}
+            Unknown post type: {(post as AnyPost).postType ?? 'undefined'}
           </p>
         </div>
       );
