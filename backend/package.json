@@ -21,11 +21,12 @@
     "typescript": "~5.6.3"
   },
   "dependencies": {
+    "@aws-cdk/aws-amplify-alpha": "^2.211.0-alpha.0",
     "@aws-cdk/aws-cognito": "^1.203.0",
     "@aws-cdk/aws-lambda-nodejs": "^1.203.0",
     "@aws-sdk/client-dynamodb": "^3.857.0",
     "@aws-sdk/lib-dynamodb": "^3.857.0",
-    "aws-cdk-lib": "2.206.0",
+    "aws-cdk-lib": "^2.211.0",
     "constructs": "^10.0.0",
     "zod": "^4.0.14"
   }

@@ -14,6 +14,8 @@ interface ApiStackProps extends StackProps {
 }
 
 export class ApiStack extends Stack {
+    public readonly api: GraphqlApi;
+
     constructor(scope: Construct, id: string, props: ApiStackProps) {
         super(scope, id, props)
 
@@ -38,7 +40,7 @@ export class ApiStack extends Stack {
         props.table.grantReadWriteData(userFunction);
         props.table.grantReadWriteData(postFunction);
 
-        const api = new GraphqlApi(this, 'EgoApi', {
+         this.api = new GraphqlApi(this, 'EgoApi', {
             name: 'ego-api',
             definition: Definition.fromFile('graphql/schema.graphql'),
             authorizationConfig: {
@@ -51,8 +53,8 @@ export class ApiStack extends Stack {
             }
         })
 
-        const userSource = api.addLambdaDataSource('UserLambdaDataSource', userFunction);
-        const postSource = api.addLambdaDataSource('PostLambdaDataSource', postFunction);
+        const userSource = this.api.addLambdaDataSource('UserLambdaDataSource', userFunction);
+        const postSource = this.api.addLambdaDataSource('PostLambdaDataSource', postFunction);
 
         userSource.createResolver('GetCurrentUserResolver', {
             typeName: 'Query',

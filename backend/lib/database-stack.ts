@@ -2,7 +2,6 @@ import { RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { AttributeType, Billing, ProjectionType, TableV2 } from 'aws-cdk-lib/aws-dynamodb'
 
-
 export class DatabaseStack extends Stack {
     public readonly table: TableV2;
 
