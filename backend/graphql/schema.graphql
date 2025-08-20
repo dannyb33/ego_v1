@@ -102,6 +102,14 @@ type TextPost implements Post {
   text: String!
 }
 
+type FollowedUser {
+  createdAt: String!
+  updatedAt: String!
+  followingUsername: String!
+  followingDisplayName: String!
+  followingSub: ID!
+}
+
 type Query {
     getCurrentUser: UserProfile
     getUser(sub: ID!): UserProfile
@@ -109,14 +117,16 @@ type Query {
     getCurrentPage: PageResponse
     getPage(sub: ID!): PageResponse
 
+    getUsersFollowed: [FollowedUser]
+
     getCurrentPosts: [Post]
     getUserPosts(sub: ID!): [Post]
 }
 
 type Mutation {
   addPageComponent(type: ComponentType!): PageResponse
-  removePageComponent(componentId: String!): PageResponse
-  movePageComponent(componentId: String!, newOrder: Int!): PageResponse
+  removePageComponent(componentId: ID!): PageResponse
+  movePageComponent(componentId: ID!, newOrder: Int!): PageResponse
 
   followUser(userId: ID!): UserProfile
   unfollowUser(userId: ID!): UserProfile

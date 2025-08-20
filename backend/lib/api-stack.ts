@@ -96,6 +96,11 @@ export class ApiStack extends Stack {
             fieldName: 'movePageComponent'
         });
 
+        userSource.createResolver("GetUsersFollowedResolver", {
+            typeName: 'Query',
+            fieldName: 'getUsersFollowed'
+        });
+
         userSource.createResolver("FollowUserResolver", {
             typeName: 'Mutation',
             fieldName: 'followUser'

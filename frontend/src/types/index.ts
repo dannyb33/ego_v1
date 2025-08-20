@@ -90,6 +90,14 @@ export interface Post {
   postType: PostType;
 }
 
+export interface FollowedUser {
+  createdAt: string;
+  updatedAt: string;
+  followingUsername: string;
+  followingDisplayName: string;
+  followingSub: string;
+}
+
 export interface TextPost extends Post {
   postType: PostType.TEXT;
   text: string;

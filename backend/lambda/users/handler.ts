@@ -29,6 +29,8 @@ type TextComponentResponse = Omit<TextComponent, 'PK' | 'SK' | 'entityType'> & {
 
 type ComponentResponse = BaseComponentResponse | BioComponentResponse | TextComponentResponse;
 
+type FollowingResponse = Omit<FollowingObject, 'PK' | 'SK' | 'entityType'>;
+
 export const handler = async (event: any) => {
     const fieldName = event.info.fieldName;
     const sub = event.identity?.sub;
@@ -45,6 +47,9 @@ export const handler = async (event: any) => {
             return await getUser(event.arguments.sub);
         case 'searchUsers':
             return await searchUsers(event.arguments.query);
+        
+        case 'getUsersFollowed':
+            return await getUsersFollowed(event.arguments.sub);
 
         case 'getCurrentPage':
             return await getPage(sub);
@@ -330,6 +335,36 @@ const moveComponent = async(sub: any, componentId: string, newOrder: number) => 
         return getPage(sub);
     } catch (error) {
         throw new Error(`Error moving component: ${error}`);
+    }
+}
+
+const getUsersFollowed = async(sub: any) => {
+    try {
+        const queryCmd = new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: `PK = :pk AND begins_with(SK, :followingPrefix)`,
+            ExpressionAttributeValues: {
+                ':pk': `USER#${sub}`,
+                ':followingPrefix': `FOLLOWING#`
+            }
+        });
+
+        const response = await ddb.send(queryCmd);
+
+        const following = response.Items || [];
+
+        const followingOut: FollowingResponse[] = following.map((f) => ({
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt,
+            followingUsername: f.followingUsername,
+            followingDisplayName: f.followingDisplayName,
+            followingSub: f.followingSub
+        }));
+
+        return followingOut;
+        
+    } catch (error) {
+        throw new Error(`Unable to get following: ${error}`);
     }
 }
 

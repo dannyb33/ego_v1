@@ -31,12 +31,12 @@ const apiStack = new ApiStack(app, `EgoApiStack`, {
   userPoolClient: authStack.userPoolClient,
 });
 
-const frontendStack = new FrontendStack(app, `EgoFrontendStack`, {
-    env,
-    api: apiStack.api,
-    userPool: authStack.userPool,
-    userPoolClient: authStack.userPoolClient,
-    environment,
-    githubOwner,
-    githubRepo,
-});
+// const frontendStack = new FrontendStack(app, `EgoFrontendStack`, {
+//     env,
+//     api: apiStack.api,
+//     userPool: authStack.userPool,
+//     userPoolClient: authStack.userPoolClient,
+//     environment,
+//     githubOwner,
+//     githubRepo,
+// });

@@ -39,7 +39,7 @@ export const ADD_COMPONENT = `
 `;
 
 export const DELETE_COMPONENT = `
-    mutation DeleteComponent($componentId: String!) {
+    mutation DeleteComponent($componentId: ID!) {
         removePageComponent(componentId: $componentId) {
             componentCount
             components {
@@ -74,6 +74,55 @@ export const DELETE_COMPONENT = `
                 updatedAt
             }
             totalSections
+        }
+    }
+`;
+
+export const FOLLOW_USER = `
+    mutation FollowUser($userId: ID!) {
+        followUser(userId: $userId) {
+            bio
+            createdAt
+            displayName
+            followerCount
+            followingCount
+            postCount
+            updatedAt
+            username
+            uuid
+        }
+    }
+`;
+
+export const UNFOLLOW_USER = `
+    mutation UnfollowUser($userId: ID!) {
+        unfollowUser(userId: $userId) {
+            bio
+            createdAt
+            displayName
+            followerCount
+            followingCount
+            postCount
+            updatedAt
+            username
+            uuid
+        }
+    }
+`;
+
+export const CREATE_TEXT_POST = `
+    mutation CreateTextPost($text: String!) {
+        createTextPost(text: $text) {
+            createdAt
+            displayName
+            postType
+            updatedAt
+            username
+            uuid
+            ... on TextPost {
+            __typename
+            text
+            }
         }
     }
 `;

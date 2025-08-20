@@ -1,3 +1,19 @@
+export const GET_USER = `
+  query GetUser($sub: ID = "") {
+    getUser(sub: $sub) {
+      bio
+      createdAt
+      displayName
+      followerCount
+      followingCount
+      postCount
+      updatedAt
+      uuid
+      username
+    }
+  }
+`;
+
 export const GET_CURRENT_PAGE = `
   query GetCurrentPage {
     getCurrentPage {
@@ -139,6 +155,18 @@ export const SEARCH_USERS = `
       followingCount
       postCount
       createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_USERS_FOLLOWED = `
+  query GetUsersFollowed {
+    getUsersFollowed {
+      createdAt
+      followingDisplayName
+      followingSub
+      followingUsername
       updatedAt
     }
   }
