@@ -44,7 +44,6 @@ export class FrontendStack extends Stack {
                         phases: {
                             preBuild: {
                                 commands: [
-                                    'cd frontend',
                                     'npm ci'
                                 ]
                             },

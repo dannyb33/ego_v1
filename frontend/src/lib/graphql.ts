@@ -3,54 +3,50 @@ import type { GraphQLResult } from '@aws-amplify/api-graphql';
 
 const client = generateClient();
 
-export const executeGraphQLQuery = async <T = any>(
-    query: string,
-    variables?: any
-): Promise<T> => {
-    try {
-        const graphqlOptions: any = { query };
+export const executeGraphQLQuery = async <TData>(
+  options: Parameters<typeof client.graphql>[0]
+): Promise<TData> => {
+  try {
+    const result = (await client.graphql(options)) as GraphQLResult<TData>;
 
-        if (variables && Object.keys(variables).length > 0) {
-            graphqlOptions.variables = variables;
-        }
-
-        const result = await client.graphql(graphqlOptions) as GraphQLResult<T>;
-        
-        // Check for GraphQL errors
-        if (result.errors && result.errors.length > 0) {
-            console.error('GraphQL Mutation Errors Details:', result.errors);
-            const errorMessages = result.errors.map(err => err.message).join(', ');
-            throw new Error(`GraphQL Mutation Error: ${errorMessages}`);
-        }
-
-        return result.data as T;
-    } catch (error) {
-        console.error('GraphQL Mutation Error:', error);
-        throw error;
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(result.errors.map(e => e.message).join(', '));
     }
+
+    if (!result.data) {
+      throw new Error('No data returned from GraphQL query.');
+    }
+
+    return result.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('GraphQL Query Error:', error);
+      throw error;
+    }
+    throw new Error('Unknown GraphQL Query Error');
+  }
 };
 
-export const executeGraphQLMutation = async <T = any>(
-    mutation: string,
-    variables?: any
-): Promise<T> => {
-    try {
-        const graphqlOptions: any = { query: mutation };
+export const executeGraphQLMutation = async <TData>(
+  options: Parameters<typeof client.graphql>[0]
+): Promise<TData> => {
+  try {
+    const result = (await client.graphql(options)) as GraphQLResult<TData>;
 
-        if (variables && Object.keys(variables).length > 0) {
-            graphqlOptions.variables = variables;
-        }
-
-        const result = await client.graphql(graphqlOptions) as GraphQLResult<T>;
-
-        // Check for GraphQL errors
-        if (result.errors && result.errors.length > 0) {
-            throw new Error(result.errors[0].message);
-        }
-
-        return result.data as T;
-    } catch (error) {
-        console.error('GraphQL Mutation Error:', error);
-        throw error;
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(result.errors.map(e => e.message).join(', '));
     }
+
+    if (!result.data) {
+      throw new Error('No data returned from GraphQL mutation.');
+    }
+
+    return result.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('GraphQL Mutation Error:', error);
+      throw error;
+    }
+    throw new Error('Unknown GraphQL Mutation Error');
+  }
 };

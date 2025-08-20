@@ -37,8 +37,10 @@ export default function LoginForm() {
         }
         await signIn(email, password);
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Authentication Failed';
+      setError(errorMessage);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -54,8 +56,10 @@ export default function LoginForm() {
       setShowConfirmation(false);
       setIsSignUp(false);
       await signIn(email, password);
-    } catch (err: any) {
-      setError(err.message || 'Confirmation failed');
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Confirmation failed';
+      setError(errorMessage);
+      console.error(err);
     } finally {
       setLoading(false);
     }
