@@ -141,7 +141,7 @@ export default function LoginForm() {
               </>
             ) : (
               <>
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <button
                   type="button"
                   className="hover:underline cursor-pointer"
