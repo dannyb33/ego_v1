@@ -1,14 +1,20 @@
-import React from 'react';
-import { AnyComponent, ComponentType, BioComponent, TextComponent } from '@/types';
+import React, { useState } from 'react';
+import { AnyComponent, ComponentType, BioComponent, TextComponent, ComponentUpdate } from '@/types';
 
 interface ComponentRendererProps {
   component: AnyComponent;
   customizerOpen?: boolean;
   onDelete?: () => void;
+  onEdit?: (componentId: string, updates: ComponentUpdate) => void;
 }
 
 // Individual component renderers
-const BioComponentRenderer: React.FC<{ component: BioComponent; customizerOpen?: boolean; onDelete?: () => void }> = ({ component, customizerOpen, onDelete }) => {
+const BioComponentRenderer: React.FC<{ 
+  component: BioComponent; 
+  customizerOpen?: boolean; 
+  onDelete?: () => void; 
+  onEdit?: (componentId: string, updates: ComponentUpdate) => void; 
+}> = ({ component, customizerOpen, onDelete }) => {
   return (
     <div className="relative bg-[var(--color-raisin-black)] rounded-lg shadow-md p-6 mb-4">
       {customizerOpen && (
@@ -49,7 +55,17 @@ const TextComponentRenderer: React.FC<{
   component: TextComponent;
   customizerOpen?: boolean;
   onDelete?: () => void;
-}> = ({ component, customizerOpen, onDelete }) => {
+  onEdit?: (componentId: string, updates: ComponentUpdate) => void;
+}> = ({ component, customizerOpen, onDelete, onEdit }) => {
+  const [editingText, setEditingText] = useState(component.text);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onEdit?.(component.uuid, { text: editingText });
+    }
+  };
+
   return (
     <div
       className="relative rounded-lg shadow-md p-10 mb-4"
@@ -66,7 +82,19 @@ const TextComponentRenderer: React.FC<{
           <span className="drop-shadow-lg relative -top-0.25">-</span>
         </button>
       )}
-      <p className="text-center text-gray-900 whitespace-pre-wrap">{component.text}</p>
+
+      {customizerOpen ? (
+        <textarea
+          value={editingText}
+          onChange={(e) => setEditingText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full text-center text-gray-900 whitespace-pre-wrap bg-transparent outline-dashed resize-none"
+        />
+      ) : (
+        <p className="text-center text-gray-900 whitespace-pre-wrap">
+          {component.text}
+        </p>
+      )}
     </div>
   );
 };
@@ -106,13 +134,13 @@ const TextComponentRenderer: React.FC<{
 // };
 
 // Main component renderer that delegates to specific renderers
-export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, customizerOpen, onDelete }) => {
+export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, customizerOpen, onDelete, onEdit }) => {
   switch (component.componentType) {
     case ComponentType.BIO:
-      return <BioComponentRenderer component={component as BioComponent} customizerOpen={customizerOpen} onDelete={onDelete} />;
+      return <BioComponentRenderer component={component as BioComponent} customizerOpen={customizerOpen} onDelete={onDelete} onEdit={onEdit} />;
 
     case ComponentType.TEXT:
-      return <TextComponentRenderer component={component as TextComponent} customizerOpen={customizerOpen} onDelete={onDelete} />;
+      return <TextComponentRenderer component={component as TextComponent} customizerOpen={customizerOpen} onDelete={onDelete} onEdit={onEdit}/>;
 
     // case ComponentType.LINK:
     //   return <LinkComponentRenderer component={component as LinkComponent} />;

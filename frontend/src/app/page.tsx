@@ -5,12 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import ComponentRenderer from '@/components/page/ComponentRenderer';
 import { executeGraphQLQuery } from '@/lib/graphql';
-import { PageResponse, Post, UserProfile, FollowedUser, PostType, TextPost } from '@/types';
+import { ComponentUpdate, PageResponse, Post, UserProfile, FollowedUser, PostType, TextPost } from '@/types';
 import { GET_CURRENT_PAGE, GET_CURRENT_POSTS, GET_PAGE, GET_USER, GET_USER_POSTS, GET_USERS_FOLLOWED } from '@/graphql/queries';
 import { PostRenderer } from '@/components/page/PostRenderer';
 import { SEARCH_USERS } from '@/graphql/queries';
 import { exec } from 'child_process';
-import { ADD_COMPONENT, CREATE_TEXT_POST, DELETE_COMPONENT, FOLLOW_USER, UNFOLLOW_USER } from '@/graphql/mutations';
+import { ADD_COMPONENT, CREATE_TEXT_POST, DELETE_COMPONENT, FOLLOW_USER, UNFOLLOW_USER, EDIT_COMPONENT } from '@/graphql/mutations';
 
 function MainPageContent() {
   const { user, signOut } = useAuth();
@@ -229,11 +229,26 @@ function MainPageContent() {
     setUserDataError(null);
     try {
       const pageData = await executeGraphQLQuery<{ removePageComponent: PageResponse }>({ query: DELETE_COMPONENT, variables: { componentId: id } });
-      console.log(pageData);
-      console.log(pageData.removePageComponent);
       setPageData(pageData.removePageComponent);
     } catch (err) {
       const errorMessage = (err as Error)?.message || 'Failed to delete component';
+      setError(errorMessage);
+      console.error(err);
+    } finally {
+      setLoadingUserData(false);
+    }
+  }
+
+  const editComponent = async (id: string, updates: ComponentUpdate) => {
+    console.log(id)
+    console.log(updates)
+    setLoadingUserData(true);
+    setUserDataError(null);
+    try {
+      const pageData = await executeGraphQLQuery<{ editPageComponent: PageResponse }>({ query: EDIT_COMPONENT, variables: { componentId: id, updates: updates } });
+      setPageData(pageData.editPageComponent);
+    } catch (err) {
+      const errorMessage = (err as Error)?.message || 'Failed to edit component';
       setError(errorMessage);
       console.error(err);
     } finally {
@@ -510,6 +525,7 @@ function MainPageContent() {
                   component={c}
                   customizerOpen={customizerOpen}
                   onDelete={() => deleteComponent(c.uuid)}
+                  onEdit={(componentId: string, updates: ComponentUpdate) => editComponent(componentId, updates)}
                 />
               ))}
             </div>

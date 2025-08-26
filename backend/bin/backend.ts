@@ -12,8 +12,8 @@ const githubOwner = app.node.tryGetContext('githubOwner') || 'dannyb33';
 const githubRepo = app.node.tryGetContext('githubRepo') || 'ego_v1';
 
 const env = {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION || 'us-east-1',
+    account: process.env.AWS_ACCOUNT_ID,
+    region: process.env.AWS_REGION || 'us-east-2',
 };
 
 const authStack = new AuthStack(app, `EgoDatabaseStack`, {

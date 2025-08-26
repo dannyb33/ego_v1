@@ -77,6 +77,12 @@ type TextComponent implements Component {
   text: String!
 }
 
+input ComponentUpdateInput {
+  font: String
+  backgroundColor: String
+  text: String
+}
+
 type FollowerResponse {
   createdAt: String!
   updatedAt: String!
@@ -127,6 +133,7 @@ type Mutation {
   addPageComponent(type: ComponentType!): PageResponse
   removePageComponent(componentId: ID!): PageResponse
   movePageComponent(componentId: ID!, newOrder: Int!): PageResponse
+  editPageComponent(componentId: ID!, updates: ComponentUpdateInput!): PageResponse
 
   followUser(userId: ID!): UserProfile
   unfollowUser(userId: ID!): UserProfile

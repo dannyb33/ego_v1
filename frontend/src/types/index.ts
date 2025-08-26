@@ -60,6 +60,12 @@ export interface TextComponent extends BaseComponent {
   text: string;
 }
 
+export interface ComponentUpdate {
+  font?: string;
+  backgroundColor?: string;
+  text?: string;
+}
+
 // export interface LinkComponent extends BaseComponent {
 //   componentType: ComponentType.LINK;
 //   url: string;

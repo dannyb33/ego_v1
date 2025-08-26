@@ -2,7 +2,7 @@ import { BatchWriteCommand, DeleteCommand, GetCommand, PutCommand, TransactWrite
 import { ensureUserProfile } from "../utils/ensureUserProfile";
 import { ddb } from "../../clients/ddb"
 import { QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { Component, Page, BaseComponent, BioComponent, TextComponent, ComponentType, UserProfile, FollowingObject, FollowerObject } from "./types";
+import { Component, Page, BaseComponent, BioComponent, TextComponent, ComponentType, UserProfile, FollowingObject, FollowerObject, ComponentUpdateInput, ComponentSchemas } from "./types";
 import { DEFAULT_COLOR, DEFAULT_FONT, DEFAULT_SECTIONS } from "../utils/global-types";
 import crypto from "crypto";
 
@@ -49,7 +49,7 @@ export const handler = async (event: any) => {
             return await searchUsers(event.arguments.query);
         
         case 'getUsersFollowed':
-            return await getUsersFollowed(event.arguments.sub);
+            return await getUsersFollowed(sub);
 
         case 'getCurrentPage':
             return await getPage(sub);
@@ -61,6 +61,8 @@ export const handler = async (event: any) => {
             return await removeComponent(sub, event.arguments.componentId);
         case 'movePageComponent':
             return await moveComponent(sub, event.arguments.componentId, event.arguments.newOrder);
+        case 'editPageComponent':
+            return await editComponent(sub, event.arguments.componentId, event.arguments.updates);
         
         case 'followUser':
             return await followUser(sub, event.arguments.userId);
@@ -198,8 +200,6 @@ const getPage = async(sub: any) => {
     }
 }
 
-//TODO: FIGURE OUT HOW USER INFORMATION IS RETURNED, WHETHER JUST IN BIO OR GENERALLY THRU PAGE INFO
-
 const addComponent = async(sub: any, type: ComponentType) => {
     try {
         const pageResponse = await queryPage(sub);
@@ -209,9 +209,9 @@ const addComponent = async(sub: any, type: ComponentType) => {
         const maxOrder = pageResponse.maxOrder;
         const newOrder = maxOrder + 10;
 
-        if (componentItems.length >= pageInfoItem.sectionCount) {
-            throw new Error('Maximum components reached');
-        }
+        // if (componentItems.length >= pageInfoItem.sectionCount) {
+        //     throw new Error('Maximum components reached');
+        // }
 
         const userData = await ddb.send(new GetCommand({
             TableName: TABLE_NAME,
@@ -335,6 +335,67 @@ const moveComponent = async(sub: any, componentId: string, newOrder: number) => 
         return getPage(sub);
     } catch (error) {
         throw new Error(`Error moving component: ${error}`);
+    }
+}
+
+const editComponent = async(sub: any, componentId: string, updates: ComponentUpdateInput) => {
+    try {
+        const componentData = await ddb.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${sub}`,
+                SK: `PAGE#COMPONENT#${componentId}`
+            }
+        }));
+
+        const now = new Date().toISOString();
+
+        const component = componentData.Item;
+
+        if (!component) throw new Error("Component not found");
+
+        const schema = ComponentSchemas[component.componentType];
+        if (!schema) throw new Error("Unknown component type");
+
+        const validated = schema.parse({ ...component, ...updates});
+
+        const updateExpressions: string[] = [];
+        const expressionAttrNames: Record<string, string> = {};
+        const expressionAttrValues: Record<string, any> = {};
+
+        let i = 0;
+        for (const [field, value] of Object.entries(updates)) {
+            i++;
+            const attrName = `#f${i}`;
+            const attrValue = `:v${i}`;
+
+            updateExpressions.push(`${attrName} = ${attrValue}`);
+            expressionAttrNames[attrName] = field;
+            expressionAttrValues[attrValue] = value;
+        }
+
+        updateExpressions.push(`#updatedAt = :updatedAt`);
+        expressionAttrNames['#updatedAt'] = 'updatedAt';
+        expressionAttrValues[':updatedAt'] = now;
+
+        const updateCmd = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${sub}`,
+                SK: `PAGE#COMPONENT#${componentId}`
+            },
+            UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+            ExpressionAttributeNames: expressionAttrNames,
+            ExpressionAttributeValues: expressionAttrValues,
+            ReturnValues: "ALL_NEW",
+        });
+
+        const result = await ddb.send(updateCmd);
+
+        return getPage(sub);
+
+    } catch (error) {
+        throw new Error(`Error updating component: ${error}`);
     }
 }
 
