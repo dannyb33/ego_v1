@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { HexColorPicker } from "react-colorful";
 import { AnyComponent, ComponentType, BioComponent, TextComponent, ComponentUpdate } from '@/types';
 
 interface ComponentRendererProps {
@@ -9,11 +10,11 @@ interface ComponentRendererProps {
 }
 
 // Individual component renderers
-const BioComponentRenderer: React.FC<{ 
-  component: BioComponent; 
-  customizerOpen?: boolean; 
-  onDelete?: () => void; 
-  onEdit?: (componentId: string, updates: ComponentUpdate) => void; 
+const BioComponentRenderer: React.FC<{
+  component: BioComponent;
+  customizerOpen?: boolean;
+  onDelete?: () => void;
+  onEdit?: (componentId: string, updates: ComponentUpdate) => void;
 }> = ({ component, customizerOpen, onDelete }) => {
   return (
     <div className="relative bg-[var(--color-raisin-black)] rounded-lg shadow-md p-6 mb-4">
@@ -57,20 +58,45 @@ const TextComponentRenderer: React.FC<{
   onDelete?: () => void;
   onEdit?: (componentId: string, updates: ComponentUpdate) => void;
 }> = ({ component, customizerOpen, onDelete, onEdit }) => {
-  const [editingText, setEditingText] = useState(component.text);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      onEdit?.(component.uuid, { text: editingText });
+
+  const [editingText, setEditingText] = useState(component.text);
+  const [color, setColor] = useState(component.backgroundColor);
+
+  // const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  //   if (e.key === "Enter" && !e.shiftKey) {
+  //     e.preventDefault();
+  //     onEdit?.(component.uuid, { text: editingText });
+  //   }
+  // };
+
+  useEffect(() => {
+
+    const newUpdate: ComponentUpdate = {};
+
+    if (editingText != component.text) {
+      newUpdate["text"] = editingText;
     }
-  };
+    if (color != component.backgroundColor) {
+      newUpdate["backgroundColor"] = color;
+    }
+
+    if (Object.keys(newUpdate).length > 0) {
+      onEdit?.(component.uuid, newUpdate);
+    }
+
+  }, [editingText, color]);
+
+  useEffect(() => {
+    setEditingText(component.text);
+    setColor(component.backgroundColor);
+  }, [component]);
 
   return (
     <div
       className="relative rounded-lg shadow-md p-10 mb-4"
       style={{
-        backgroundColor: component.backgroundColor,
+        backgroundColor: color,
         fontFamily: component.font
       }}
     >
@@ -87,7 +113,6 @@ const TextComponentRenderer: React.FC<{
         <textarea
           value={editingText}
           onChange={(e) => setEditingText(e.target.value)}
-          onKeyDown={handleKeyDown}
           className="w-full text-center text-gray-900 whitespace-pre-wrap bg-transparent outline-dashed resize-none"
         />
       ) : (
@@ -95,6 +120,12 @@ const TextComponentRenderer: React.FC<{
           {component.text}
         </p>
       )}
+
+      {customizerOpen ? (
+        <div className="flex justify-center items-center">
+          <HexColorPicker color={color} onChange={setColor} />
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -140,7 +171,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component,
       return <BioComponentRenderer component={component as BioComponent} customizerOpen={customizerOpen} onDelete={onDelete} onEdit={onEdit} />;
 
     case ComponentType.TEXT:
-      return <TextComponentRenderer component={component as TextComponent} customizerOpen={customizerOpen} onDelete={onDelete} onEdit={onEdit}/>;
+      return <TextComponentRenderer component={component as TextComponent} customizerOpen={customizerOpen} onDelete={onDelete} onEdit={onEdit} />;
 
     // case ComponentType.LINK:
     //   return <LinkComponentRenderer component={component as LinkComponent} />;

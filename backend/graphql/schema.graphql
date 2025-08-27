@@ -130,10 +130,10 @@ type Query {
 }
 
 type Mutation {
-  addPageComponent(type: ComponentType!): PageResponse
-  removePageComponent(componentId: ID!): PageResponse
-  movePageComponent(componentId: ID!, newOrder: Int!): PageResponse
-  editPageComponent(componentId: ID!, updates: ComponentUpdateInput!): PageResponse
+  addPageComponent(type: ComponentType!): Component
+  removePageComponent(componentId: ID!): Component
+  movePageComponent(componentId: ID!, newOrder: Int!): Component
+  editPageComponent(componentId: ID!, updates: ComponentUpdateInput!): Component
 
   followUser(userId: ID!): UserProfile
   unfollowUser(userId: ID!): UserProfile

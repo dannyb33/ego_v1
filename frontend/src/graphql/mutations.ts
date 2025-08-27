@@ -1,8 +1,6 @@
 export const ADD_COMPONENT = `
     mutation AddComponent($type: ComponentType!) {
         addPageComponent(type: $type) {
-            componentCount
-            components {
                 componentType
                 createdAt
                 order
@@ -23,28 +21,14 @@ export const ADD_COMPONENT = `
                 followerCount
                 postCount
             }
-            }
-            page {
-                backgroundColor
-                backgroundImage
-                backgroundType
-                createdAt
-                font
-                sectionCount
-                updatedAt
-            }
-            totalSections
         }
     }
 `;
 
 export const DELETE_COMPONENT = `
     mutation DeleteComponent($componentId: ID!) {
-    mutation DeleteComponent($componentId: ID!) {
         removePageComponent(componentId: $componentId) {
-            componentCount
-            components {
-                componentType
+            componentType
                 createdAt
                 order
                 updatedAt
@@ -64,17 +48,6 @@ export const DELETE_COMPONENT = `
                 followerCount
                 postCount
             }
-            }
-            page {
-                backgroundColor
-                backgroundImage
-                backgroundType
-                createdAt
-                font
-                sectionCount
-                updatedAt
-            }
-            totalSections
         }
     }
 `;
@@ -82,9 +55,7 @@ export const DELETE_COMPONENT = `
 export const EDIT_COMPONENT = `
     mutation EditComponent($componentId: ID!, $updates: ComponentUpdateInput!) {
         editPageComponent(componentId: $componentId, updates: $updates) {
-            componentCount
-            components {
-                componentType
+            componentType
                 createdAt
                 order
                 updatedAt
@@ -104,17 +75,6 @@ export const EDIT_COMPONENT = `
                 followerCount
                 postCount
             }
-            }
-            page {
-                backgroundColor
-                backgroundImage
-                backgroundType
-                createdAt
-                font
-                sectionCount
-                updatedAt
-            }
-            totalSections
         }
     }
 `;

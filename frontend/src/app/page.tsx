@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import ComponentRenderer from '@/components/page/ComponentRenderer';
 import { executeGraphQLQuery } from '@/lib/graphql';
-import { ComponentUpdate, PageResponse, Post, UserProfile, FollowedUser, PostType, TextPost } from '@/types';
+import { ComponentUpdate, PageResponse, Post, UserProfile, FollowedUser, PostType, TextPost, AnyComponent } from '@/types';
 import { GET_CURRENT_PAGE, GET_CURRENT_POSTS, GET_PAGE, GET_USER, GET_USER_POSTS, GET_USERS_FOLLOWED } from '@/graphql/queries';
 import { PostRenderer } from '@/components/page/PostRenderer';
 import { SEARCH_USERS } from '@/graphql/queries';
@@ -25,6 +25,8 @@ function MainPageContent() {
   // --- Open Page Customizer ---
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [componentMenuOpen, setComponentMenuOpen] = useState(false);
+
+  const [updateCache, setUpdateCache] = useState<Record<string, ComponentUpdate> | null>(null);
 
   // --- Open Create Post Menu ---
   const [postMenuOpen, setPostMenuOpen] = useState(false);
@@ -127,7 +129,6 @@ function MainPageContent() {
       const user = (await executeGraphQLQuery<{ getUser: UserProfile }>({ query: GET_USER, variables: { sub: sub } })).getUser;
 
       const pageData = await executeGraphQLQuery<{ getPage: PageResponse }>({ query: GET_PAGE, variables: { sub: user.uuid } });
-      console.log(pageData);
       setUserPage(pageData.getPage);
       setCustomizerOpen(false);
 
@@ -147,12 +148,10 @@ function MainPageContent() {
   };
 
   const fetchFollowedList = async () => {
-    console.log('loading');
     setfollowedError(null);
 
     try {
       const followedData = await executeGraphQLQuery<({ getUsersFollowed: FollowedUser[] })>({ query: GET_USERS_FOLLOWED });
-      console.log(followedData)
 
       setFollowedList(followedData.getUsersFollowed);
     } catch (err) {
@@ -197,7 +196,7 @@ function MainPageContent() {
     try {
       const newPost = (await executeGraphQLQuery<{ createTextPost: TextPost }>({ query: CREATE_TEXT_POST, variables: { text: text } })).createTextPost;
 
-      setPosts(prev => prev ? [newPost, ...prev]: [newPost]);
+      setPosts(prev => prev ? [newPost, ...prev] : [newPost]);
 
     } catch (err) {
       const errorMessage = (err as Error)?.message || 'Failed to create text post ';
@@ -210,10 +209,17 @@ function MainPageContent() {
     setLoadingUserData(true);
     setUserDataError(null);
     try {
-      const pageData = await executeGraphQLQuery<{ addPageComponent: PageResponse }>({ query: ADD_COMPONENT, variables: { type: type } });
-      console.log(pageData);
-      console.log(pageData.addPageComponent);
-      setPageData(pageData.addPageComponent);
+      const componentData = await executeGraphQLQuery<{ addPageComponent: AnyComponent }>({ query: ADD_COMPONENT, variables: { type: type } });
+    
+      setPageData(prev => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          components: [...prev.components, componentData.addPageComponent],
+          componentCount: prev.componentCount + 1,
+        }
+      });
       setComponentMenuOpen(false);
     } catch (err) {
       const errorMessage = (err as Error)?.message || 'Failed to add component ';
@@ -228,8 +234,16 @@ function MainPageContent() {
     setLoadingUserData(true);
     setUserDataError(null);
     try {
-      const pageData = await executeGraphQLQuery<{ removePageComponent: PageResponse }>({ query: DELETE_COMPONENT, variables: { componentId: id } });
-      setPageData(pageData.removePageComponent);
+      const componentData = await executeGraphQLQuery<{ removePageComponent: AnyComponent }>({ query: DELETE_COMPONENT, variables: { componentId: id } });
+      setPageData(prev => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          components: prev.components.filter(c => c.uuid != componentData.removePageComponent.uuid),
+          componentCount: prev.componentCount - 1,
+        }
+      });
     } catch (err) {
       const errorMessage = (err as Error)?.message || 'Failed to delete component';
       setError(errorMessage);
@@ -240,13 +254,21 @@ function MainPageContent() {
   }
 
   const editComponent = async (id: string, updates: ComponentUpdate) => {
-    console.log(id)
-    console.log(updates)
     setLoadingUserData(true);
     setUserDataError(null);
     try {
-      const pageData = await executeGraphQLQuery<{ editPageComponent: PageResponse }>({ query: EDIT_COMPONENT, variables: { componentId: id, updates: updates } });
-      setPageData(pageData.editPageComponent);
+      const componentData = await executeGraphQLQuery<{ editPageComponent: AnyComponent }>({ query: EDIT_COMPONENT, variables: { componentId: id, updates: updates } });
+      
+      setPageData(prev => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          components: prev.components.map(c => 
+            c.uuid === componentData.editPageComponent.uuid ? componentData.editPageComponent : c
+          ),
+        };
+      });
     } catch (err) {
       const errorMessage = (err as Error)?.message || 'Failed to edit component';
       setError(errorMessage);
@@ -254,6 +276,40 @@ function MainPageContent() {
     } finally {
       setLoadingUserData(false);
     }
+  }
+
+  function editUpdateCache(componentId: string, update: ComponentUpdate) {
+    setUpdateCache(prev => {
+      if (prev === null) {
+        return { [componentId]: update }
+      }
+      return {
+        ...prev,
+        [componentId]: {
+          ...prev[componentId],
+          ...update
+        }
+      };
+    });
+  }
+
+  function editCustomizerState() {
+    if (!customizerOpen) {
+      setCustomizerOpen(true);
+      return;
+    }
+
+    if (updateCache) {
+      for (const [id, updates] of Object.entries(updateCache)) {
+        if (pageData && pageData.components.some(c => c.uuid === id)) {
+          editComponent(id, updates);
+        }
+      }
+
+      setUpdateCache(null);
+    }
+
+    setCustomizerOpen(false);
   }
 
   // --- Sidebar / Search ---
@@ -452,7 +508,6 @@ function MainPageContent() {
     );
   };
 
-
   useEffect(() => {
     if (componentMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -460,10 +515,6 @@ function MainPageContent() {
       document.body.style.overflow = '';
     }
   }, [componentMenuOpen]);
-
-  const renderPostMenu = () => {
-
-  }
 
   // --- Main content ---
   const renderMainContent = () => {
@@ -525,7 +576,7 @@ function MainPageContent() {
                   component={c}
                   customizerOpen={customizerOpen}
                   onDelete={() => deleteComponent(c.uuid)}
-                  onEdit={(componentId: string, updates: ComponentUpdate) => editComponent(componentId, updates)}
+                  onEdit={(componentId: string, updates: ComponentUpdate) => editUpdateCache(componentId, updates)}
                 />
               ))}
             </div>
@@ -554,7 +605,7 @@ function MainPageContent() {
               transition-all duration-200
               cursor-pointer
             `}
-            onClick={() => setCustomizerOpen(!customizerOpen)}
+            onClick={() => editCustomizerState()}
           >
             <span className="drop-shadow-lg relative -top-0.5">{customizerOpen ? "×" : "+"}</span>
           </button>
@@ -629,7 +680,7 @@ function MainPageContent() {
         {renderSidebarOrSearch()}
         <div className="absolute top-0 left-full h-full w-4 pointer-events-none bg-gradient-to-r from-black/11 to-transparent"></div>
       </aside>
-      
+
       <div className="flex-1 flex flex-col ml-64">
         {/* Header */}
         <header className="bg-[var(--color-baby-powder)] shadow-md backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10 flex justify-between items-center h-16 px-6 ">
