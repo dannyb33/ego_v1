@@ -331,14 +331,14 @@ function MainPageContent() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto pt-2">
             {searchLoading && <p className="text-black-500 px-1 text-md mb-4 drop-shadow-sm">Searching...</p>}
             {!searchLoading && searchResults?.length === 0 && searchQuery && <p className="text-black-500 px-1 text-md drop-shadow-sm">No users found.</p>}
             {searchError && <p className="text-black-500 text-sm">{searchError}</p>}
             {searchResults?.map((u) => (
               <div
                 key={u.uuid}
-                className="border-b bg-[var(--color-baby-powder)] mb-4 border-[var(--color-raisin-black)] py-2 px-2 hover:bg-gray-100 rounded cursor-pointer shadow-md"
+                className="border-b bg-[var(--color-baby-powder)] mb-4 border-[var(--color-raisin-black)] py-2 px-2 hover:bg-gray-100 rounded cursor-pointer shadow-md transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200"
                 onClick={() => fetchUserData(u.uuid)}
               >
                 {/* Display name */}
@@ -368,14 +368,14 @@ function MainPageContent() {
             ←
           </button>
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto pt-2">
             {followedLoading && <p className="text-black-500 text-sm mb-4 drop-shadow-sm ">Loading...</p>}
             {!followedLoading && followedList?.length === 0 && <p className="px-1 text-black-500 text-md drop-shadow-sm ">No followed users.</p>}
             {followedError && <p className="text-black-500 text-sm">{followedError}</p>}
             {followedList?.map((u) => (
               <div
                 key={u.followingSub}
-                className="border-b bg-[var(--color-baby-powder)] mb-4 border-[var(--color-raisin-black)] py-2 px-2 hover:bg-gray-100 rounded cursor-pointer shadow-md"
+                className="border-b bg-[var(--color-baby-powder)] mb-4 border-[var(--color-raisin-black)] py-2 px-2 hover:bg-gray-100 rounded cursor-pointer shadow-md transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200"
                 onClick={() => fetchUserData(u.followingSub)}
               >
                 {/* Display name */}
@@ -399,7 +399,7 @@ function MainPageContent() {
         <h2 className="text-2xl font-bold text-[var(--color-baby-powder)] drop-shadow-md mb-6">Menu</h2>
         <ul className="space-y-2 text-black-700 text-md flex-1">
           <li
-            className={`hover:bg-[var(--color-baby-powder)] hover:shadow-md rounded p-2 cursor-pointer ${activeMenu === "default" && !selectedUser ? "bg-[var(--color-baby-powder)] font-bold shadow-md transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200" : ""
+            className={`hover:bg-[var(--color-baby-powder)] hover:shadow-md rounded p-2 cursor-pointer transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200 ${activeMenu === "default" && !selectedUser ? "bg-[var(--color-baby-powder)] font-bold shadow-md" : ""
               }`}
             onClick={() => {
               setActiveMenu('default');
@@ -549,7 +549,7 @@ function MainPageContent() {
             {selectedUser && (
               <button
                 className={`group rounded-lg shadow-md w-24 font-bold transition cursor-pointer px-4 py-1
-                            flex justify-center items-center
+                            flex justify-center items-center transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200
                               ${isFollowing
                     ? "bg-[var(--color-celeste)] text-gray-900 hover:bg-[var(--color-bright-pink-crayola)]"
                     : "bg-[var(--color-bright-pink-crayola)] text-gray-900 hover:bg-[var(--color-celeste)]"

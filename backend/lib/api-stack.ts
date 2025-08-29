@@ -6,11 +6,15 @@ import { TableV2 } from 'aws-cdk-lib/aws-dynamodb'
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import path from 'path';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Distribution } from 'aws-cdk-lib/aws-cloudfront';
 
 interface ApiStackProps extends StackProps {
     table: TableV2;  // Pass table from database stack
     userPool: UserPool;
     userPoolClient: UserPoolClient;
+    bucket: Bucket;
+    distribution: Distribution;
 }
 
 export class ApiStack extends Stack {
@@ -37,8 +41,22 @@ export class ApiStack extends Stack {
             },
         });
 
+        const imageFunction = new NodejsFunction(this, 'ImageFunction', {
+            runtime: Runtime.NODEJS_18_X,
+            entry: 'lambda/images/handler.ts',
+            handler: 'handler',
+            environment: {
+                TABLE_NAME: props.table.tableName,
+                BUCKET_NAME: props.bucket.bucketName,
+                CLOUDFRONT_DOMAIN: props.distribution.domainName,
+            }
+        })
+
         props.table.grantReadWriteData(userFunction);
         props.table.grantReadWriteData(postFunction);
+
+        props.table.grantReadWriteData(imageFunction);
+        props.bucket.grantReadWrite(imageFunction);
 
          this.api = new GraphqlApi(this, 'EgoApi', {
             name: 'ego-api',
@@ -55,6 +73,7 @@ export class ApiStack extends Stack {
 
         const userSource = this.api.addLambdaDataSource('UserLambdaDataSource', userFunction);
         const postSource = this.api.addLambdaDataSource('PostLambdaDataSource', postFunction);
+        const imageSource = this.api.addLambdaDataSource('ImageLambdaDataSource', imageFunction);
 
         userSource.createResolver('GetCurrentUserResolver', {
             typeName: 'Query',
@@ -129,6 +148,11 @@ export class ApiStack extends Stack {
         postSource.createResolver('CreateTextPostResolver', {
             typeName: 'Mutation',
             fieldName: 'createTextPost'
+        });
+
+        imageSource.createResolver('GetUploadUrlResolver', {
+            typeName: 'Query',
+            fieldName: 'getUploadUrl'
         })
     }
 }

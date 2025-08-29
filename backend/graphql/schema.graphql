@@ -15,6 +15,10 @@ enum BackgroundType {
   IMAGE
 }
 
+enum ContentType {
+  image/png
+}
+
 type UserProfile {
   uuid: String!
   username: String!
@@ -77,6 +81,15 @@ type TextComponent implements Component {
   text: String!
 }
 
+type ImageComponent implements Component {
+  createdAt: String!
+  updatedAt: String!
+  order: Int!
+  uuid: String!
+  componentType: ComponentType!
+  imageUrl: String!
+}
+
 input ComponentUpdateInput {
   font: String
   backgroundColor: String
@@ -116,6 +129,11 @@ type FollowedUser {
   followingSub: ID!
 }
 
+type UrlResponse {
+  uploadUrl: String!
+  imageUrl: String!
+}
+
 type Query {
     getCurrentUser: UserProfile
     getUser(sub: ID!): UserProfile
@@ -127,6 +145,8 @@ type Query {
 
     getCurrentPosts: [Post]
     getUserPosts(sub: ID!): [Post]
+
+    getUploadUrl(fileName: String!, contentType: ContentType!): UrlResponse
 }
 
 type Mutation {
