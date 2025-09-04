@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { text } from 'stream/consumers';
 
 interface AddTextPostModalProps {
     isOpen: boolean;
@@ -44,7 +45,8 @@ export default function AddTextPostModal({
 
                 <button
                     onClick={handleSubmit}
-                    className="w-full rounded-lg p-3 bg-[var(--color-bright-pink-crayola)] text-white font-bold hover:bg-[var(--color-eggplant)] transition cursor-pointer shadow-md"
+                    disabled={!textInput.trim()}
+                    className="w-full disabled:opacity-50 rounded-lg p-3 bg-[var(--color-bright-pink-crayola)] text-white font-bold hover:bg-[var(--color-eggplant)] transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200 cursor-pointer shadow-md"
                 >
                     Post
                 </button>

@@ -150,6 +150,11 @@ export class ApiStack extends Stack {
             fieldName: 'createTextPost'
         });
 
+        postSource.createResolver('CreateImagePostResolver', {
+            typeName: 'Mutation',
+            fieldName: 'createImagePost'
+        });
+
         imageSource.createResolver('GetUploadUrlResolver', {
             typeName: 'Query',
             fieldName: 'getUploadUrl'

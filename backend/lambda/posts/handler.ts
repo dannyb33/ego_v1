@@ -117,8 +117,12 @@ const createTextPost = async (sub: any, text: string) => {
     }
 }
 
-const createImagePost = async (sub: any, imageUrl: string, text: string) => {
+const createImagePost = async (sub: any, imageUrl: string, text?: string) => {
     try {
+        if (!text) {
+            text = ""
+        }
+
         const userData = await ddb.send(new GetCommand({
             TableName: TABLE_NAME,
             Key: {

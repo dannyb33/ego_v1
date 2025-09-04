@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { executeGraphQLQuery } from '@/lib/graphql';
-import { Post, TextPost } from '@/types';
-import { GET_CURRENT_POSTS } from '@/graphql/queries';
-import { CREATE_TEXT_POST } from '@/graphql/mutations';
+import { ContentType, ImagePost, Post, TextPost, UploadUrl } from '@/types';
+import { GET_CURRENT_POSTS, GET_UPLOAD_URL } from '@/graphql/queries';
+import { CREATE_IMAGE_POST, CREATE_TEXT_POST } from '@/graphql/mutations';
+import { create } from 'domain';
 
 export const usePosts = () => {
     const [posts, setPosts] = useState<Post[] | null>(null);
@@ -39,11 +40,56 @@ export const usePosts = () => {
         }
     }, []);
 
+    const createImagePost = useCallback(async (file: File, text?: string) => {
+        try {
+            const fileType = mimeToEnum[file.type];
+
+            if (!text) {
+                text = ""
+            }
+
+            if (!fileType) {
+                throw new Error("Invalid file type: only PNG or JPEG are allowed")
+            }
+
+            const { getUploadUrl } = await executeGraphQLQuery<{ getUploadUrl: UploadUrl }>({
+                query: GET_UPLOAD_URL,
+                variables: {
+                    fileName: file.name,
+                    contentType: fileType
+                }
+            });
+
+            await fetch(getUploadUrl.uploadUrl, {
+                method: "PUT",
+                headers: { "Content-Type": file.type },
+                body: file
+            });
+
+            const newPost = await executeGraphQLQuery<{ createImagePost: ImagePost}>({
+                query: CREATE_IMAGE_POST,
+                variables: {imageUrl: getUploadUrl.imageUrl, text: text },
+            });
+
+            setPosts(prev => prev ? [newPost.createImagePost, ...prev] : [newPost.createImagePost]);
+
+        } catch (err) {
+            setError((err as Error)?.message || 'Failed to create image post');
+            console.error(err);
+        }
+    }, []);
+
     return {
         posts,
         loading,
         error,
         fetchPosts,
-        createTextPost
+        createTextPost,
+        createImagePost
     };
+};
+
+const mimeToEnum: Record<string, string> = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
 };

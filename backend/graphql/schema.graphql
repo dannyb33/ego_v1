@@ -16,7 +16,8 @@ enum BackgroundType {
 }
 
 enum ContentType {
-  image/png
+  JPEG
+  PNG
 }
 
 type UserProfile {
@@ -121,6 +122,17 @@ type TextPost implements Post {
   text: String!
 }
 
+type ImagePost implements Post {
+  createdAt: String!
+  updatedAt: String!
+  username: String!
+  displayName: String!
+  uuid: String!
+  postType: PostType!
+  text: String!
+  imageUrl: String!
+}
+
 type FollowedUser {
   createdAt: String!
   updatedAt: String!
@@ -159,4 +171,5 @@ type Mutation {
   unfollowUser(userId: ID!): UserProfile
 
   createTextPost(text: String!): Post
+  createImagePost(imageUrl: String!, text: String): Post
 }

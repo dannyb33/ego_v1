@@ -127,3 +127,21 @@ export const CREATE_TEXT_POST = `
         }
     }
 `;
+
+export const CREATE_IMAGE_POST = `
+    mutation CreateImagePost($imageUrl: String!, $text: String!) {
+        createImagePost(imageUrl: $imageUrl, text: $text) {
+            createdAt
+            displayName
+            postType
+            updatedAt
+            username
+            uuid
+            ... on ImagePost {
+            __typename
+            text
+            imageUrl
+            }
+        }
+    }
+`;

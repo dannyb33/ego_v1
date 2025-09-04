@@ -10,7 +10,8 @@ export const useAppState = () => {
     const [componentMenuOpen, setComponentMenuOpen] = useState(false);
     const [postMenuOpen, setPostMenuOpen] = useState(false);
     const [addTextPostMenuOpen, setAddTextPostMenuOpen] = useState(false);
-    const [textInput, setTextInput] = useState('');
+    const [addImagePostMenuOpen, setAddImagePostMenuOpen] = useState(false);
+    // const [textInput, setTextInput] = useState('');
 
     const toggleCustomizer = useCallback(() => {
         setCustomizerOpen(prev => !prev);
@@ -20,6 +21,7 @@ export const useAppState = () => {
         setComponentMenuOpen(false);
         setPostMenuOpen(false);
         setAddTextPostMenuOpen(false);
+        setAddImagePostMenuOpen(false);
         setCustomizerOpen(false);
     }, []);
 
@@ -45,10 +47,15 @@ export const useAppState = () => {
         setComponentMenuOpen,
         postMenuOpen,
         setPostMenuOpen,
+
         addTextPostMenuOpen,
         setAddTextPostMenuOpen,
-        textInput,
-        setTextInput,
+
+        addImagePostMenuOpen,
+        setAddImagePostMenuOpen,
+
+        // textInput,
+        // setTextInput,
 
         // Utility functions
         closeAllMenus

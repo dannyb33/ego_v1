@@ -123,6 +123,11 @@ query GetCurrentPosts {
       __typename
       text
     }
+    ... on ImagePost {
+      __typename
+      text
+      imageUrl
+    }
   }
 }
 `;
@@ -139,6 +144,11 @@ query GetUserPosts($sub: ID!) {
     ... on TextPost {
       __typename
       text
+    }
+    ... on ImagePost {
+      __typename
+      text
+      imageUrl
     }
   }
 }
@@ -168,6 +178,15 @@ export const GET_USERS_FOLLOWED = `
       followingSub
       followingUsername
       updatedAt
+    }
+  }
+`;
+
+export const GET_UPLOAD_URL = `
+  query GetUploadUrl($fileName: String!, $contentType: ContentType!) {
+    getUploadUrl(fileName: $fileName, contentType: $contentType) {
+      imageUrl
+      uploadUrl
     }
   }
 `;

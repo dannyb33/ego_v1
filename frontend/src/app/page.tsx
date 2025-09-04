@@ -139,10 +139,12 @@ function MainPageContent() {
                             selectedUser={userHook.selectedUser}
                             postMenuOpen={stateHook.postMenuOpen}
                             textPostMenuOpen={stateHook.addTextPostMenuOpen}
+                            imagePostMenuOpen={stateHook.addImagePostMenuOpen}
                             onTogglePostMenu={() => stateHook.setPostMenuOpen(!stateHook.postMenuOpen)}
-                            toggleTextPostModal={() => stateHook.setAddTextPostMenuOpen(!stateHook.addTextPostMenuOpen)}
-                            onOpenImagePostModal={() => stateHook.setAddTextPostMenuOpen(!stateHook.addTextPostMenuOpen)}
+                            onToggleTextPostModal={() => stateHook.setAddTextPostMenuOpen(!stateHook.addTextPostMenuOpen)}
+                            onToggleImagePostModal={() => stateHook.setAddImagePostMenuOpen(!stateHook.addImagePostMenuOpen)}
                             onCreateTextPost={postsHook.createTextPost}
+                            onCreateImagePost={postsHook.createImagePost}
                         />
                     )}
 

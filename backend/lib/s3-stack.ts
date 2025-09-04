@@ -1,8 +1,8 @@
 import { CfnOutput, RemovalPolicy, Stack, StackProps } from "aws-cdk-lib";
-import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
+import { BlockPublicAccess, Bucket, HttpMethods } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
-import { Distribution, OriginSelectionCriteria, ViewerProtocolPolicy } from "aws-cdk-lib/aws-cloudfront"
-import { S3BucketOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { Distribution, ViewerProtocolPolicy } from "aws-cdk-lib/aws-cloudfront";
+import { S3BucketOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
 
 export class S3Stack extends Stack {
     public readonly bucket: Bucket;
@@ -15,11 +15,22 @@ export class S3Stack extends Stack {
             removalPolicy: RemovalPolicy.DESTROY,
             autoDeleteObjects: true,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+            cors: [
+                {
+                    allowedOrigins: [
+                        "http://localhost:3000",          // local dev
+                        "https://develop.d35njc4j7onvnr.amplifyapp.com/",
+                        "https://ego-journal.com/"
+                    ],
+                    allowedMethods: [HttpMethods.PUT, HttpMethods.GET],
+                    allowedHeaders: ["*"],
+                },
+            ],
         });
 
         this.distribution = new Distribution(this, 'EgoImageDistribution', {
             defaultBehavior: {
-                origin: S3BucketOrigin.withBucketDefaults(this.bucket),
+                origin: S3BucketOrigin.withOriginAccessControl(this.bucket),
                 viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS
             }
         })

@@ -13,6 +13,11 @@ export enum BackgroundType {
   IMAGE = 'IMAGE'
 }
 
+export enum ContentType {
+  JPEG = "image/jpeg",
+  PNG = "image/png",
+}
+
 export interface UserProfile {
   uuid: string;
   username: string;
@@ -109,4 +114,15 @@ export interface TextPost extends Post {
   text: string;
 }
 
-export type AnyPost = Post | TextPost;
+export interface ImagePost extends Post {
+  postType: PostType.IMAGE;
+  text: string;
+  imageUrl: string;
+}
+
+export interface UploadUrl {
+  uploadUrl: string;
+  imageUrl: string
+}
+
+export type AnyPost = Post | TextPost | ImagePost;
