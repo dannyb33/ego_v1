@@ -2,7 +2,7 @@ import { BatchWriteCommand, DeleteCommand, GetCommand, PutCommand, TransactWrite
 import { ensureUserProfile } from "../utils/ensureUserProfile";
 import { ddb } from "../../clients/ddb"
 import { QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { Component, Page, BaseComponent, BioComponent, TextComponent, ComponentType, UserProfile, FollowingObject, FollowerObject } from "./types";
+import { Component, Page, BaseComponent, BioComponent, TextComponent, ComponentType, UserProfile, FollowingObject, FollowerObject, ComponentUpdateInput, ComponentSchemas } from "./types";
 import { DEFAULT_COLOR, DEFAULT_FONT, DEFAULT_SECTIONS } from "../utils/global-types";
 import crypto from "crypto";
 
@@ -29,22 +29,27 @@ type TextComponentResponse = Omit<TextComponent, 'PK' | 'SK' | 'entityType'> & {
 
 type ComponentResponse = BaseComponentResponse | BioComponentResponse | TextComponentResponse;
 
+type FollowingResponse = Omit<FollowingObject, 'PK' | 'SK' | 'entityType'>;
+
 export const handler = async (event: any) => {
     const fieldName = event.info.fieldName;
     const sub = event.identity?.sub;
-    if(!sub) {
+    if (!sub) {
         throw new Error("Unauthorized");
     }
 
     const user = await ensureUserProfile(event.identity);
 
-    switch(fieldName) {
+    switch (fieldName) {
         case 'getCurrentUser':
             return await getUser(sub);
         case 'getUser':
             return await getUser(event.arguments.sub);
         case 'searchUsers':
             return await searchUsers(event.arguments.query);
+
+        case 'getUsersFollowed':
+            return await getUsersFollowed(sub);
 
         case 'getCurrentPage':
             return await getPage(sub);
@@ -56,7 +61,9 @@ export const handler = async (event: any) => {
             return await removeComponent(sub, event.arguments.componentId);
         case 'movePageComponent':
             return await moveComponent(sub, event.arguments.componentId, event.arguments.newOrder);
-        
+        case 'editPageComponent':
+            return await editComponent(sub, event.arguments.componentId, event.arguments.updates);
+
         case 'followUser':
             return await followUser(sub, event.arguments.userId);
         case 'unfollowUser':
@@ -67,7 +74,7 @@ export const handler = async (event: any) => {
 
 };
 
-const getUser = async(sub: any) => {
+const getUser = async (sub: any) => {
     try {
         const key = {
             PK: `USER#${sub}`,
@@ -105,7 +112,7 @@ const getUser = async(sub: any) => {
     }
 }
 
-const searchUsers = async(query: string) => {
+const searchUsers = async (query: string) => {
     try {
         const queryCmd = new QueryCommand({
             TableName: TABLE_NAME,
@@ -122,7 +129,7 @@ const searchUsers = async(query: string) => {
         const userList = response.Items || [];
         const outList: UserResponse[] = [];
 
-        for(const item of userList) {
+        for (const item of userList) {
             outList.push({
                 uuid: item.PK.split('#')[1],
                 username: item.username,
@@ -143,7 +150,7 @@ const searchUsers = async(query: string) => {
     }
 }
 
-const getPage = async(sub: any) => {
+const getPage = async (sub: any) => {
     try {
         const profile = await getUser(sub);
 
@@ -193,9 +200,7 @@ const getPage = async(sub: any) => {
     }
 }
 
-//TODO: FIGURE OUT HOW USER INFORMATION IS RETURNED, WHETHER JUST IN BIO OR GENERALLY THRU PAGE INFO
-
-const addComponent = async(sub: any, type: ComponentType) => {
+const addComponent = async (sub: any, type: ComponentType) => {
     try {
         const pageResponse = await queryPage(sub);
 
@@ -204,9 +209,9 @@ const addComponent = async(sub: any, type: ComponentType) => {
         const maxOrder = pageResponse.maxOrder;
         const newOrder = maxOrder + 10;
 
-        if (componentItems.length >= pageInfoItem.sectionCount) {
-            throw new Error('Maximum components reached');
-        }
+        // if (componentItems.length >= pageInfoItem.sectionCount) {
+        //     throw new Error('Maximum components reached');
+        // }
 
         const userData = await ddb.send(new GetCommand({
             TableName: TABLE_NAME,
@@ -255,7 +260,7 @@ const addComponent = async(sub: any, type: ComponentType) => {
                     font: DEFAULT_FONT,
                     backgroundColor: DEFAULT_COLOR,
                     text: "",
-                    entityType: "COMPONENT" 
+                    entityType: "COMPONENT"
                 };
                 break
             default:
@@ -269,7 +274,7 @@ const addComponent = async(sub: any, type: ComponentType) => {
                     font: DEFAULT_FONT,
                     backgroundColor: DEFAULT_COLOR,
                     text: "",
-                    entityType: "COMPONENT" 
+                    entityType: "COMPONENT"
                 };
                 break
         };
@@ -281,33 +286,39 @@ const addComponent = async(sub: any, type: ComponentType) => {
 
         await ddb.send(putCmd);
 
-        return getPage(sub);
+        return formatComponent(newComponent);
 
     } catch (error) {
         throw new Error(`Error adding component: ${error}`);
     }
 }
 
-const removeComponent = async(sub: any, componentId: string) => {
+const removeComponent = async (sub: any, componentId: string) => {
     try {
         const deleteCmd = new DeleteCommand({
             TableName: TABLE_NAME,
             Key: {
                 PK: `USER#${sub}`,
                 SK: `PAGE#COMPONENT#${componentId}`
-            }
+            },
+            ReturnValues: "ALL_OLD",
         });
 
-        const delResponse = await ddb.send(deleteCmd);
+        const result = await ddb.send(deleteCmd);
 
-        return getPage(sub);
+        if (result.Attributes) {
+            return formatComponent(result.Attributes);
+        }
+        else {
+            throw new Error("Error returning component for deletion");
+        }
 
     } catch (error) {
         throw new Error(`Error when deleting component: ${error}`);
     }
 }
 
-const moveComponent = async(sub: any, componentId: string, newOrder: number) => {
+const moveComponent = async (sub: any, componentId: string, newOrder: number) => {
     try {
         const updateCmd = new UpdateCommand({
             TableName: TABLE_NAME,
@@ -322,18 +333,121 @@ const moveComponent = async(sub: any, componentId: string, newOrder: number) => 
             ExpressionAttributeValues: {
                 ":newOrder": newOrder,
                 ":now": new Date().toISOString()
-            }
+            },
+            ReturnValues: "ALL_NEW",
         });
 
-        await ddb.send(updateCmd);
+        const result = await ddb.send(updateCmd);
 
-        return getPage(sub);
+        if (result.Attributes) {
+            return formatComponent(result.Attributes);
+        }
+        else {
+            throw new Error("Error updating component for move");
+        }
+
     } catch (error) {
         throw new Error(`Error moving component: ${error}`);
     }
 }
 
-const followUser = async(sub: any, userId: string) => {
+const editComponent = async (sub: any, componentId: string, updates: ComponentUpdateInput) => {
+    try {
+        const componentData = await ddb.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${sub}`,
+                SK: `PAGE#COMPONENT#${componentId}`
+            }
+        }));
+
+        const now = new Date().toISOString();
+
+        const component = componentData.Item;
+
+        if (!component) throw new Error("Component not found");
+
+        const schema = ComponentSchemas[component.componentType];
+        if (!schema) throw new Error("Unknown component type");
+
+        const validated = schema.parse({ ...component, ...updates });
+
+        const updateExpressions: string[] = [];
+        const expressionAttrNames: Record<string, string> = {};
+        const expressionAttrValues: Record<string, any> = {};
+
+        let i = 0;
+        for (const [field, value] of Object.entries(updates)) {
+            i++;
+            const attrName = `#f${i}`;
+            const attrValue = `:v${i}`;
+
+            updateExpressions.push(`${attrName} = ${attrValue}`);
+            expressionAttrNames[attrName] = field;
+            expressionAttrValues[attrValue] = value;
+        }
+
+        updateExpressions.push(`#updatedAt = :updatedAt`);
+        expressionAttrNames['#updatedAt'] = 'updatedAt';
+        expressionAttrValues[':updatedAt'] = now;
+
+        const updateCmd = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${sub}`,
+                SK: `PAGE#COMPONENT#${componentId}`
+            },
+            UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+            ExpressionAttributeNames: expressionAttrNames,
+            ExpressionAttributeValues: expressionAttrValues,
+            ReturnValues: "ALL_NEW",
+        });
+
+        const result = await ddb.send(updateCmd);
+
+        if (result.Attributes) {
+            return formatComponent(result.Attributes);
+        }
+        else {
+            throw new Error("Error updating component for edit");
+        }
+
+    } catch (error) {
+        throw new Error(`Error updating component: ${error}`);
+    }
+}
+
+const getUsersFollowed = async (sub: any) => {
+    try {
+        const queryCmd = new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: `PK = :pk AND begins_with(SK, :followingPrefix)`,
+            ExpressionAttributeValues: {
+                ':pk': `USER#${sub}`,
+                ':followingPrefix': `FOLLOWING#`
+            }
+        });
+
+        const response = await ddb.send(queryCmd);
+
+        const following = response.Items || [];
+
+        const followingOut: FollowingResponse[] = following.map((f) => ({
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt,
+            followingUsername: f.followingUsername,
+            followingDisplayName: f.followingDisplayName,
+            followingSub: f.followingSub
+        }));
+
+        return followingOut;
+
+    } catch (error) {
+        throw new Error(`Unable to get following: ${error}`);
+    }
+}
+
+const followUser = async (sub: any, userId: string) => {
     try {
         const followData = await ddb.send(new GetCommand({
             TableName: TABLE_NAME,
@@ -342,9 +456,9 @@ const followUser = async(sub: any, userId: string) => {
                 SK: `FOLLOWING#${userId}`
             }
         }));
-        
+
         const isFollowing = followData.Item;
-        if(isFollowing) {
+        if (isFollowing) {
             throw new Error("User already followed");
         }
 
@@ -379,18 +493,22 @@ const followUser = async(sub: any, userId: string) => {
                 TransactItems: [
                     { Put: { TableName: TABLE_NAME, Item: followingDoc } },
                     { Put: { TableName: TABLE_NAME, Item: followerDoc } },
-                    { Update: {
-                        TableName: TABLE_NAME,
-                        Key: { PK: `USER#${sub}`, SK: 'PROFILE' },
-                        UpdateExpression: 'SET followingCount = if_not_exists(followingCount, :zero) + :inc',
-                        ExpressionAttributeValues: { ':inc': 1, ':zero': 0 }
-                    }},
-                    { Update: {
-                        TableName: TABLE_NAME,
-                        Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
-                        UpdateExpression: 'SET followerCount = if_not_exists(followerCount, :zero) + :inc',
-                        ExpressionAttributeValues: { ':inc': 1, ':zero': 0 }
-                    }}
+                    {
+                        Update: {
+                            TableName: TABLE_NAME,
+                            Key: { PK: `USER#${sub}`, SK: 'PROFILE' },
+                            UpdateExpression: 'SET followingCount = if_not_exists(followingCount, :zero) + :inc',
+                            ExpressionAttributeValues: { ':inc': 1, ':zero': 0 }
+                        }
+                    },
+                    {
+                        Update: {
+                            TableName: TABLE_NAME,
+                            Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
+                            UpdateExpression: 'SET followerCount = if_not_exists(followerCount, :zero) + :inc',
+                            ExpressionAttributeValues: { ':inc': 1, ':zero': 0 }
+                        }
+                    }
                 ]
             })
         );
@@ -398,13 +516,13 @@ const followUser = async(sub: any, userId: string) => {
         user.followerCount = user.followerCount + 1;
 
         return user;
-        
+
     } catch (error) {
         throw new Error(`Unable to follow user: ${error}`);
     }
 }
 
-const unfollowUser = async(sub: any, userId: string) => {
+const unfollowUser = async (sub: any, userId: string) => {
     try {
         const followData = await ddb.send(new GetCommand({
             TableName: TABLE_NAME,
@@ -415,7 +533,7 @@ const unfollowUser = async(sub: any, userId: string) => {
         }));
 
         const isFollowing = followData.Item;
-        if(!isFollowing) {
+        if (!isFollowing) {
             throw new Error("User not already followed");
         }
 
@@ -424,94 +542,94 @@ const unfollowUser = async(sub: any, userId: string) => {
 
         await ddb.send(
             new TransactWriteCommand({
-            TransactItems: [
-                // Delete FOLLOWING doc
-                { Delete: { TableName: TABLE_NAME, Key: followingKey } },
+                TransactItems: [
+                    // Delete FOLLOWING doc
+                    { Delete: { TableName: TABLE_NAME, Key: followingKey } },
 
-                // Delete FOLLOWER doc
-                { Delete: { TableName: TABLE_NAME, Key: followerKey } },
+                    // Delete FOLLOWER doc
+                    { Delete: { TableName: TABLE_NAME, Key: followerKey } },
 
-                // Decrement current user's followingCount
-                {
-                Update: {
-                    TableName: TABLE_NAME,
-                    Key: { PK: `USER#${sub}`, SK: 'PROFILE' },
-                    UpdateExpression: 'SET followingCount = if_not_exists(followingCount, :zero) - :dec',
-                    ExpressionAttributeValues: { ':dec': 1, ':zero': 0 },
-                },
-                },
+                    // Decrement current user's followingCount
+                    {
+                        Update: {
+                            TableName: TABLE_NAME,
+                            Key: { PK: `USER#${sub}`, SK: 'PROFILE' },
+                            UpdateExpression: 'SET followingCount = if_not_exists(followingCount, :zero) - :dec',
+                            ExpressionAttributeValues: { ':dec': 1, ':zero': 0 },
+                        },
+                    },
 
-                // Decrement target user's followerCount
-                {
-                Update: {
-                    TableName: TABLE_NAME,
-                    Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
-                    UpdateExpression: 'SET followerCount = if_not_exists(followerCount, :zero) - :dec',
-                    ExpressionAttributeValues: { ':dec': 1, ':zero': 0 },
-                },
-                },
-            ],
+                    // Decrement target user's followerCount
+                    {
+                        Update: {
+                            TableName: TABLE_NAME,
+                            Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
+                            UpdateExpression: 'SET followerCount = if_not_exists(followerCount, :zero) - :dec',
+                            ExpressionAttributeValues: { ':dec': 1, ':zero': 0 },
+                        },
+                    },
+                ],
             })
         );
 
         return getUser(userId);
-        
+
     } catch (error) {
         throw new Error(`Failed to unfollow user: ${error}`)
     }
 }
 
 function formatComponent(component: Record<string, any>) {
-        const baseComponent = {
-                createdAt: component.createdAt,
-                updatedAt: component.updatedAt,
-                order: component.order,
-                componentType: component.componentType,
-                uuid: component.SK.split("PAGE#COMPONENT#")[1],
-        }
+    const baseComponent = {
+        createdAt: component.createdAt,
+        updatedAt: component.updatedAt,
+        order: component.order,
+        componentType: component.componentType,
+        uuid: component.SK.split("PAGE#COMPONENT#")[1],
+    }
 
-        let out: ComponentResponse;
-        
-        switch (component.componentType) {
-            case "BIO":
-                out = {
-                    ...baseComponent,
-                    __typename: "BioComponent",
-                    username: component.username,
-                    displayName: component.displayName,
-                    bio: component.bio,
-                    followingCount: component.followingCount,
-                    followerCount: component.followerCount,
-                    postCount: component.postCount
-                }
-                return out;
-            case "TEXT":
-                out = {
-                    ...baseComponent,
-                    __typename: "TextComponent",
-                    font: component.font,
-                    backgroundColor: component.backgroundColor,
-                    text: component.text
-                }
-                return out;
-            default:
-                out = {
-                    ...baseComponent,
-                    __typename: "BaseComponent"
-                }
-                return out;
-        }
+    let out: ComponentResponse;
+
+    switch (component.componentType) {
+        case "BIO":
+            out = {
+                ...baseComponent,
+                __typename: "BioComponent",
+                username: component.username,
+                displayName: component.displayName,
+                bio: component.bio,
+                followingCount: component.followingCount,
+                followerCount: component.followerCount,
+                postCount: component.postCount
+            }
+            return out;
+        case "TEXT":
+            out = {
+                ...baseComponent,
+                __typename: "TextComponent",
+                font: component.font,
+                backgroundColor: component.backgroundColor,
+                text: component.text
+            }
+            return out;
+        default:
+            out = {
+                ...baseComponent,
+                __typename: "BaseComponent"
+            }
+            return out;
+    }
 }
 
 async function queryPage(sub: any) {
     const queryCmd = new QueryCommand({
-            TableName: TABLE_NAME,
-            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :pagePrefix)',
-            ExpressionAttributeValues: {
-                ':pk': `USER#${sub}`,
-                ':pagePrefix': 'PAGE#',
-            },
-        });
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :pagePrefix)',
+        ExpressionAttributeValues: {
+            ':pk': `USER#${sub}`,
+            ':pagePrefix': 'PAGE#',
+        },
+    });
 
     const response = await ddb.send(queryCmd);
     const items = response.Items || [];
@@ -528,5 +646,5 @@ async function queryPage(sub: any) {
     const maxOrder = items.reduce((max, item) => Math.max(max, item.order || 0), 0);
     const newOrder = maxOrder + 10;
 
-    return {'pageInfo': pageInfoItem, 'componentList': componentItems, 'maxOrder': maxOrder};
+    return { 'pageInfo': pageInfoItem, 'componentList': componentItems, 'maxOrder': maxOrder };
 }

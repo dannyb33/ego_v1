@@ -13,6 +13,11 @@ export enum BackgroundType {
   IMAGE = 'IMAGE'
 }
 
+export enum ContentType {
+  JPEG = "image/jpeg",
+  PNG = "image/png",
+}
+
 export interface UserProfile {
   uuid: string;
   username: string;
@@ -60,6 +65,12 @@ export interface TextComponent extends BaseComponent {
   text: string;
 }
 
+export interface ComponentUpdate {
+  font?: string;
+  backgroundColor?: string;
+  text?: string;
+}
+
 // export interface LinkComponent extends BaseComponent {
 //   componentType: ComponentType.LINK;
 //   url: string;
@@ -90,9 +101,28 @@ export interface Post {
   postType: PostType;
 }
 
+export interface FollowedUser {
+  createdAt: string;
+  updatedAt: string;
+  followingUsername: string;
+  followingDisplayName: string;
+  followingSub: string;
+}
+
 export interface TextPost extends Post {
   postType: PostType.TEXT;
   text: string;
 }
 
-export type AnyPost = Post | TextPost;
+export interface ImagePost extends Post {
+  postType: PostType.IMAGE;
+  text: string;
+  imageUrl: string;
+}
+
+export interface UploadUrl {
+  uploadUrl: string;
+  imageUrl: string
+}
+
+export type AnyPost = Post | TextPost | ImagePost;

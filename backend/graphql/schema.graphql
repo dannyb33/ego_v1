@@ -15,6 +15,11 @@ enum BackgroundType {
   IMAGE
 }
 
+enum ContentType {
+  JPEG
+  PNG
+}
+
 type UserProfile {
   uuid: String!
   username: String!
@@ -77,6 +82,21 @@ type TextComponent implements Component {
   text: String!
 }
 
+type ImageComponent implements Component {
+  createdAt: String!
+  updatedAt: String!
+  order: Int!
+  uuid: String!
+  componentType: ComponentType!
+  imageUrl: String!
+}
+
+input ComponentUpdateInput {
+  font: String
+  backgroundColor: String
+  text: String
+}
+
 type FollowerResponse {
   createdAt: String!
   updatedAt: String!
@@ -102,6 +122,30 @@ type TextPost implements Post {
   text: String!
 }
 
+type ImagePost implements Post {
+  createdAt: String!
+  updatedAt: String!
+  username: String!
+  displayName: String!
+  uuid: String!
+  postType: PostType!
+  text: String!
+  imageUrl: String!
+}
+
+type FollowedUser {
+  createdAt: String!
+  updatedAt: String!
+  followingUsername: String!
+  followingDisplayName: String!
+  followingSub: ID!
+}
+
+type UrlResponse {
+  uploadUrl: String!
+  imageUrl: String!
+}
+
 type Query {
     getCurrentUser: UserProfile
     getUser(sub: ID!): UserProfile
@@ -109,17 +153,23 @@ type Query {
     getCurrentPage: PageResponse
     getPage(sub: ID!): PageResponse
 
+    getUsersFollowed: [FollowedUser]
+
     getCurrentPosts: [Post]
     getUserPosts(sub: ID!): [Post]
+
+    getUploadUrl(fileName: String!, contentType: ContentType!): UrlResponse
 }
 
 type Mutation {
-  addPageComponent(type: ComponentType!): PageResponse
-  removePageComponent(componentId: String!): PageResponse
-  movePageComponent(componentId: String!, newOrder: Int!): PageResponse
+  addPageComponent(type: ComponentType!): Component
+  removePageComponent(componentId: ID!): Component
+  movePageComponent(componentId: ID!, newOrder: Int!): Component
+  editPageComponent(componentId: ID!, updates: ComponentUpdateInput!): Component
 
   followUser(userId: ID!): UserProfile
   unfollowUser(userId: ID!): UserProfile
 
   createTextPost(text: String!): Post
+  createImagePost(imageUrl: String!, text: String): Post
 }

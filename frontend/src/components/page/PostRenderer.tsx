@@ -1,5 +1,5 @@
 import React from 'react';
-import { AnyPost, PostType, TextPost} from '@/types';
+import { AnyPost, ImagePost, PostType, TextPost } from '@/types';
 
 interface PostRendererProps {
   post: AnyPost;
@@ -13,7 +13,27 @@ const TextPostRenderer: React.FC<{ post: TextPost }> = ({ post }) => {
         <span className="font-medium">{post.displayName || post.username}</span>
         <span>{new Date(post.createdAt).toLocaleDateString()}</span>
       </div>
-        <p className="text-white whitespace-pre-wrap">{post.text}</p>
+      <p className="text-white whitespace-pre-wrap">{post.text}</p>
+    </div>
+  );
+};
+
+
+const ImagePostRenderer: React.FC<{ post: ImagePost }> = ({ post }) => {
+  console.log(post);
+  return (
+    <div className="bg-[var(--color-eggplant)] rounded-lg shadow-md p-6 mb-4">
+      <div className="flex justify-between text-sm text-gray-400 mb-2">
+        <span className="font-medium">{post.displayName || post.username}</span>
+        <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+      </div>
+      <p className="text-white whitespace-pre-wrap mb-3">{post.text}</p>
+      <img
+        src={post.imageUrl}
+        alt="Post image"
+        loading="lazy"
+        className="w-full h-auto rounded-lg object-cover"
+      />
     </div>
   );
 };
@@ -23,6 +43,8 @@ export const PostRenderer: React.FC<PostRendererProps> = ({ post }) => {
   switch (post.postType) {
     case PostType.TEXT:
       return <TextPostRenderer post={post as TextPost} />;
+    case PostType.IMAGE:
+      return <ImagePostRenderer post={post as ImagePost} />;
 
     default:
       return (

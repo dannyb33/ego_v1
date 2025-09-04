@@ -42,6 +42,12 @@ export const BioComponentSchema = BaseComponentSchema.extend({
     postCount: z.number()
 });
 
+export const ComponentUpdateSchema = z.object({
+    font: z.string(),
+    backgroundColor: z.string(),
+    text: z.string()
+});
+
 export const FollowingSchema = BaseDBSchema.extend({
     followingUsername: z.string(),
     followingDisplayName: z.string(),
@@ -62,8 +68,13 @@ export type BioComponent = z.infer<typeof BioComponentSchema>;
 export type TextComponent = z.infer<typeof TextComponentSchema>;
 
 export type Component = BaseComponent | BioComponent | TextComponent;
-
 export type ComponentType = ["BIO", "TEXT"]
+export type ComponentUpdateInput = z.infer<typeof ComponentUpdateSchema>;
+
+export const ComponentSchemas: Record<string, z.ZodTypeAny> = {
+    BIO: BioComponentSchema,
+    TEXT: TextComponentSchema
+}
 
 export type FollowingObject = z.infer<typeof FollowingSchema>;
 export type FollowerObject = z.infer<typeof FollowerSchema>;
