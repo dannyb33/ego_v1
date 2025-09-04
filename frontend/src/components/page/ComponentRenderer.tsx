@@ -20,7 +20,7 @@ const BioComponentRenderer: React.FC<{
     <div className="relative bg-[var(--color-raisin-black)] rounded-lg shadow-md p-6 mb-4">
       {customizerOpen && (
         <button
-          className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-bright-pink-crayola)] text-[var(--color-baby-powder)] cursor-pointer text-3xl font-bold shadow-md hover:bg-[var(--color-celeste)] hover:text-[var(--color-bright-pink-crayola)] transition"
+          className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-bright-pink-crayola)] text-[var(--color-baby-powder)] cursor-pointer text-3xl font-bold shadow-md hover:bg-[var(--color-celeste)] hover:text-[var(--color-bright-pink-crayola)] transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200"
           onClick={onDelete}
         >
           <span className="drop-shadow-lg relative -top-0.25">-</span>
@@ -102,7 +102,7 @@ const TextComponentRenderer: React.FC<{
     >
       {customizerOpen && (
         <button
-          className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-bright-pink-crayola)] text-[var(--color-baby-powder)] cursor-pointer text-3xl font-bold shadow-md hover:bg-[var(--color-celeste)] hover:text-[var(--color-bright-pink-crayola)] transition"
+          className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--color-bright-pink-crayola)] text-[var(--color-baby-powder)] cursor-pointer text-3xl font-bold shadow-md hover:bg-[var(--color-celeste)] hover:text-[var(--color-bright-pink-crayola)] transition hover:-translate-y-0.5 active:translate-y-0.5 transition-all duration-200"
           onClick={onDelete}
         >
           <span className="drop-shadow-lg relative -top-0.25">-</span>

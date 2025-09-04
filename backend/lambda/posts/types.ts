@@ -13,10 +13,11 @@ export const TextPostSchema = BasePostSchema.extend({
 });
 
 export const ImagePostSchema = BasePostSchema.extend({
-    image: z.string(),
-    caption: z.string()
+    imageUrl: z.string(),
+    text: z.string()
 });
 
 
 export type BasePost = z.infer<typeof BasePostSchema>;
 export type TextPost = z.infer<typeof TextPostSchema>;
+export type ImagePost = z.infer<typeof ImagePostSchema>;
