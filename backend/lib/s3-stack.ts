@@ -19,8 +19,8 @@ export class S3Stack extends Stack {
                 {
                     allowedOrigins: [
                         "http://localhost:3000",          // local dev
-                        "https://develop.d35njc4j7onvnr.amplifyapp.com/",
-                        "https://ego-journal.com/"
+                        "https://develop.d35njc4j7onvnr.amplifyapp.com",
+                        "https://ego-journal.com"
                     ],
                     allowedMethods: [HttpMethods.PUT, HttpMethods.GET],
                     allowedHeaders: ["*"],
