@@ -3,6 +3,7 @@
 *It's Not About You!*
 
 ego-journal.com
+Alternate: https://develop.d35njc4j7onvnr.amplifyapp.com/
 
 ---
 
