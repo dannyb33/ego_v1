@@ -2,7 +2,7 @@
 
 *It's Not About You!*
 
-https://ego-journal.com
+https://ego-journal.com (currrently down, blame AWS!)
 
 Alternate: https://develop.d35njc4j7onvnr.amplifyapp.com
 
