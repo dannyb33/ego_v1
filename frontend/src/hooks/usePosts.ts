@@ -52,6 +52,8 @@ export const usePosts = () => {
                 throw new Error("Invalid file type: only PNG or JPEG are allowed")
             }
 
+            console.log(file);
+
             const { getUploadUrl } = await executeGraphQLQuery<{ getUploadUrl: UploadUrl }>({
                 query: GET_UPLOAD_URL,
                 variables: {
@@ -60,16 +62,20 @@ export const usePosts = () => {
                 }
             });
 
-            await fetch(getUploadUrl.uploadUrl, {
+            console.log(getUploadUrl);
+
+            console.log(await fetch(getUploadUrl.uploadUrl, {
                 method: "PUT",
                 headers: { "Content-Type": file.type },
                 body: file
-            });
+            }));
 
             const newPost = await executeGraphQLQuery<{ createImagePost: ImagePost}>({
                 query: CREATE_IMAGE_POST,
                 variables: {imageUrl: getUploadUrl.imageUrl, text: text },
             });
+
+            console.log(newPost);
 
             setPosts(prev => prev ? [newPost.createImagePost, ...prev] : [newPost.createImagePost]);
 

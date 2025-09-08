@@ -20,7 +20,6 @@ const TextPostRenderer: React.FC<{ post: TextPost }> = ({ post }) => {
 
 
 const ImagePostRenderer: React.FC<{ post: ImagePost }> = ({ post }) => {
-  console.log(post);
   return (
     <div className="bg-[var(--color-eggplant)] rounded-lg shadow-md p-6 mb-4">
       <div className="flex justify-between text-sm text-gray-400 mb-2">
